@@ -1,0 +1,35 @@
+autoscan: warning: missing AC_CHECK_FUNCS([strtol]) wanted by: 
+	src/common/shared_func.c:188
+autoscan: warning: missing AC_CHECK_HEADERS([netinet/in.h]) wanted by: 
+	src/common/shared_func.c:18
+autoscan: warning: missing AC_CHECK_HEADERS([sys/time.h]) wanted by: 
+	src/common/shared_func.h:16
+autoscan: warning: missing AC_CHECK_HEADERS([termios.h]) wanted by: 
+	src/common/shared_func.c:25
+autoscan: warning: missing AC_FUNC_FORK wanted by: 
+	src/common/shared_func.c:125
+	src/common/shared_func.c:132
+autoscan: warning: missing AC_FUNC_MKTIME wanted by: 
+	src/common/shared_func.c:440
+autoscan: warning: missing AC_TYPE_INT16_T wanted by: 
+	src/common/shared_func.c:243
+	src/common/shared_func.c:251
+	src/common/shared_func.c:255
+	src/common/shared_func.c:256
+	src/common/shared_func.h:41
+	src/common/shared_func.h:42
+autoscan: warning: missing AC_TYPE_INT64_T wanted by: 
+	src/common/shared_func.c:277
+	src/common/shared_func.c:291
+	src/common/shared_func.c:295
+	src/common/shared_func.c:296
+	src/common/shared_func.c:297
+	src/common/shared_func.c:298
+	src/common/shared_func.c:299
+	src/common/shared_func.c:300
+	src/common/shared_func.c:301
+	src/common/shared_func.c:302
+	src/common/shared_func.h:45
+	src/common/shared_func.h:46
+autoscan: warning: missing AC_TYPE_PID_T wanted by: 
+	src/common/shared_func.c:120

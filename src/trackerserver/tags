@@ -1,0 +1,327 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+ACLOCAL	Makefile	/^ACLOCAL = ${SHELL} \/home\/linlw\/workspace\/lfs\/missing aclocal-1.14$/;"	m
+ACLOCAL_M4	Makefile	/^ACLOCAL_M4 = $(top_srcdir)\/aclocal.m4$/;"	m
+AMTAR	Makefile	/^AMTAR = $${TAR-tar}$/;"	m
+AM_CFLAGS	Makefile	/^AM_CFLAGS = -I$(top_srcdir)\/src\/common \\$/;"	m
+AM_DEFAULT_VERBOSITY	Makefile	/^AM_DEFAULT_VERBOSITY = 1$/;"	m
+AM_LDFLAGS	Makefile	/^AM_LDFLAGS = $/;"	m
+AM_V_CC	Makefile	/^AM_V_CC = $(am__v_CC_$(V))$/;"	m
+AM_V_CCLD	Makefile	/^AM_V_CCLD = $(am__v_CCLD_$(V))$/;"	m
+AM_V_GEN	Makefile	/^AM_V_GEN = $(am__v_GEN_$(V))$/;"	m
+AM_V_P	Makefile	/^AM_V_P = $(am__v_P_$(V))$/;"	m
+AM_V_at	Makefile	/^AM_V_at = $(am__v_at_$(V))$/;"	m
+AUTOCONF	Makefile	/^AUTOCONF = ${SHELL} \/home\/linlw\/workspace\/lfs\/missing autoconf$/;"	m
+AUTOHEADER	Makefile	/^AUTOHEADER = ${SHELL} \/home\/linlw\/workspace\/lfs\/missing autoheader$/;"	m
+AUTOMAKE	Makefile	/^AUTOMAKE = ${SHELL} \/home\/linlw\/workspace\/lfs\/missing automake-1.14$/;"	m
+AWK	Makefile	/^AWK = mawk$/;"	m
+CC	Makefile	/^CC = gcc$/;"	m
+CCDEPMODE	Makefile	/^CCDEPMODE = depmode=gcc3$/;"	m
+CCLD	Makefile	/^CCLD = $(CC)$/;"	m
+CFLAGS	Makefile	/^CFLAGS = -O2 -Wall$/;"	m
+COMPILE	Makefile	/^COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \\$/;"	m
+CONFIG_CLEAN_FILES	Makefile	/^CONFIG_CLEAN_FILES =$/;"	m
+CONFIG_CLEAN_VPATH_FILES	Makefile	/^CONFIG_CLEAN_VPATH_FILES =$/;"	m
+CONFIG_HEADER	Makefile	/^CONFIG_HEADER = $(top_builddir)\/config.h$/;"	m
+CONN_ITEMS_PER_ALLOC	trackerd.h	28;"	d
+CPP	Makefile	/^CPP = gcc -E$/;"	m
+CPPFLAGS	Makefile	/^CPPFLAGS = $/;"	m
+CTAGS	Makefile	/^CTAGS = ctags$/;"	m
+CYGPATH_W	Makefile	/^CYGPATH_W = echo$/;"	m
+DATA_BUFF_SIZE	trackerd.h	29;"	d
+DEFAULT_INCLUDES	Makefile	/^DEFAULT_INCLUDES = -I. -I$(top_builddir)$/;"	m
+DEFAULT_LISTEN_BACKLOG	trackerd.h	26;"	d
+DEFAULT_MAXCONNS	trackerd.h	25;"	d
+DEFAULT_PORT	trackerd.h	24;"	d
+DEFS	Makefile	/^DEFS = -DHAVE_CONFIG_H$/;"	m
+DEPDIR	Makefile	/^DEPDIR = .deps$/;"	m
+DISTFILES	Makefile	/^DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)$/;"	m
+DIST_COMMON	Makefile	/^DIST_COMMON = $(srcdir)\/Makefile.in $(srcdir)\/Makefile.am \\$/;"	m
+DIST_SOURCES	Makefile	/^DIST_SOURCES = $(trackerd_SOURCES)$/;"	m
+ECHO_C	Makefile	/^ECHO_C = $/;"	m
+ECHO_N	Makefile	/^ECHO_N = -n$/;"	m
+ECHO_T	Makefile	/^ECHO_T = $/;"	m
+EGREP	Makefile	/^EGREP = \/bin\/grep -E$/;"	m
+ETAGS	Makefile	/^ETAGS = etags$/;"	m
+EXEEXT	Makefile	/^EXEEXT = $/;"	m
+GREP	Makefile	/^GREP = \/bin\/grep$/;"	m
+INSTALL	Makefile	/^INSTALL = \/usr\/bin\/install -c$/;"	m
+INSTALL_DATA	Makefile	/^INSTALL_DATA = ${INSTALL} -m 644$/;"	m
+INSTALL_HEADER	Makefile	/^INSTALL_HEADER = $(INSTALL_DATA)$/;"	m
+INSTALL_PROGRAM	Makefile	/^INSTALL_PROGRAM = ${INSTALL}$/;"	m
+INSTALL_SCRIPT	Makefile	/^INSTALL_SCRIPT = ${INSTALL}$/;"	m
+INSTALL_STRIP_PROGRAM	Makefile	/^INSTALL_STRIP_PROGRAM = $(install_sh) -c -s$/;"	m
+LDADD	Makefile	/^LDADD = $(top_builddir)\/src\/common\/liblfscommon.a #-L\/usr\/local\/lib $/;"	m
+LDFLAGS	Makefile	/^LDFLAGS = $/;"	m
+LIBOBJS	Makefile	/^LIBOBJS = $/;"	m
+LIBS	Makefile	/^LIBS = -levent -lpthread $/;"	m
+LINK	Makefile	/^LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@$/;"	m
+LOCALHOST	trackerd.h	23;"	d
+LTLIBOBJS	Makefile	/^LTLIBOBJS = $/;"	m
+MAKEINFO	Makefile	/^MAKEINFO = ${SHELL} \/home\/linlw\/workspace\/lfs\/missing makeinfo$/;"	m
+MKDIR_P	Makefile	/^MKDIR_P = \/bin\/mkdir -p$/;"	m
+NORMAL_INSTALL	Makefile	/^NORMAL_INSTALL = :$/;"	m
+NORMAL_UNINSTALL	Makefile	/^NORMAL_UNINSTALL = :$/;"	m
+OBJEXT	Makefile	/^OBJEXT = o$/;"	m
+PACKAGE	Makefile	/^PACKAGE = lfs$/;"	m
+PACKAGE_BUGREPORT	Makefile	/^PACKAGE_BUGREPORT = linliwen@aliyun.com$/;"	m
+PACKAGE_NAME	Makefile	/^PACKAGE_NAME = lfs$/;"	m
+PACKAGE_STRING	Makefile	/^PACKAGE_STRING = lfs 0.1.0$/;"	m
+PACKAGE_TARNAME	Makefile	/^PACKAGE_TARNAME = lfs$/;"	m
+PACKAGE_URL	Makefile	/^PACKAGE_URL = $/;"	m
+PACKAGE_VERSION	Makefile	/^PACKAGE_VERSION = 0.1.0$/;"	m
+PATH_SEPARATOR	Makefile	/^PATH_SEPARATOR = :$/;"	m
+POST_INSTALL	Makefile	/^POST_INSTALL = :$/;"	m
+POST_UNINSTALL	Makefile	/^POST_UNINSTALL = :$/;"	m
+PRE_INSTALL	Makefile	/^PRE_INSTALL = :$/;"	m
+PRE_UNINSTALL	Makefile	/^PRE_UNINSTALL = :$/;"	m
+PROGRAMS	Makefile	/^PROGRAMS = $(bin_PROGRAMS)$/;"	m
+RANLIB	Makefile	/^RANLIB = ranlib$/;"	m
+READ_DATA_RECEIVED	trackerd_thread.c	/^	READ_DATA_RECEIVED,$/;"	e	enum:network_read_result	file:
+READ_HARD_ERROR	trackerd_thread.c	/^	READ_HARD_ERROR$/;"	e	enum:network_read_result	file:
+READ_NO_DATA_RECEIVED	trackerd_thread.c	/^	READ_NO_DATA_RECEIVED,$/;"	e	enum:network_read_result	file:
+READ_SOFT_ERROR	trackerd_thread.c	/^	READ_SOFT_ERROR,$/;"	e	enum:network_read_result	file:
+SET_MAKE	Makefile	/^SET_MAKE = $/;"	m
+SHELL	Makefile	/^SHELL = \/bin\/bash$/;"	m
+SOURCES	Makefile	/^SOURCES = $(trackerd_SOURCES)$/;"	m
+STRIP	Makefile	/^STRIP = $/;"	m
+TRACKERD_SOURCE_LIST	Makefile	/^TRACKERD_SOURCE_LIST = trackerd_func.c trackerd_queue.c trackerd_thread.c $/;"	m
+TRACKERD_SOURCE_LIST_HEADER	Makefile	/^TRACKERD_SOURCE_LIST_HEADER = trackerd.h trackerd_func.h trackerd_queue.h trackerd_thread.h trackerd_protocol.h$/;"	m
+VERSION	Makefile	/^VERSION = 0.1.0$/;"	m
+WRITE_COMPLETE	trackerd_thread.c	/^	WRITE_COMPLETE,$/;"	e	enum:network_write_result	file:
+WRITE_HARD_ERROR	trackerd_thread.c	/^	WRITE_HARD_ERROR$/;"	e	enum:network_write_result	file:
+WRITE_INCOMPLETE	trackerd_thread.c	/^	WRITE_INCOMPLETE,$/;"	e	enum:network_write_result	file:
+WRITE_SOFT_ERROR	trackerd_thread.c	/^	WRITE_SOFT_ERROR,$/;"	e	enum:network_write_result	file:
+_TRACKERD_FUNC_H_	trackerd_func.h	10;"	d
+_TRACKERD_H_	trackerd.h	10;"	d
+_TRACKERD_PROTOCOL_H_	trackerd_protocol.h	10;"	d
+_TRACKERD_QUEUE_H_	trackerd_queue.h	9;"	d
+_TRACKERD_THREAD_H_	trackerd_thread.h	10;"	d
+__conn_clean	trackerd_thread.c	/^static void __conn_clean(conn *c)$/;"	f	file:
+__conn_item_pop	trackerd_queue.c	/^static inline conn_item* __conn_item_pop(queue_head *cq_head)$/;"	f	file:
+__conn_item_push	trackerd_queue.c	/^static inline void __conn_item_push(queue_head *cq_head,conn_item *conn_item)$/;"	f	file:
+__dispatch_conn	trackerd_thread.c	/^static void __dispatch_conn(int sfd)$/;"	f	file:
+__event_handler_callback	trackerd_thread.c	/^static void __event_handler_callback(const int fd,short which,void *arg)$/;"	f	file:
+__init_queue	trackerd_queue.c	/^static inline void __init_queue(queue_head *cq_head)$/;"	f	file:
+__libevent_thread_callback	trackerd_thread.c	/^static void __libevent_thread_callback(int fd,short which,void *arg)$/;"	f	file:
+__network_read	trackerd_thread.c	/^static enum network_read_result __network_read(conn *c)$/;"	f	file:
+__network_write_block	trackerd_thread.c	/^static enum network_write_result __network_write_block(conn *c)$/;"	f	file:
+__network_write_noblock	trackerd_thread.c	/^static enum network_write_result __network_write_noblock(conn *c)$/;"	f	file:
+__parse_protocol_cmd	trackerd_thread.c	/^static int __parse_protocol_cmd(conn *c)$/;"	f	file:
+__queue_active	trackerd_queue.c	/^static inline int __queue_active(queue_head *cq_head)$/;"	f	file:
+__set_conn_state	trackerd_thread.c	/^static void __set_conn_state(conn *c,enum conn_states state)$/;"	f	file:
+__setup_thread	trackerd_thread.c	/^static int __setup_thread(libevent_thread *thread)$/;"	f	file:
+__state_machine	trackerd_thread.c	/^static void __state_machine(conn *c)$/;"	f	file:
+__thread_worker	trackerd_thread.c	/^static void* __thread_worker(void *arg)$/;"	f	file:
+__thread_worker_entrance	trackerd_thread.c	/^static void __thread_worker_entrance(void* (*func)(void*),void *arg)$/;"	f	file:
+__update_conn_event	trackerd_thread.c	/^static int __update_conn_event(conn *c,const int new_ev_flags)$/;"	f	file:
+__wait_for_worker_thread_startup	trackerd_thread.c	/^static void __wait_for_worker_thread_startup(int nthreads)$/;"	f	file:
+__worker_thread_startup	trackerd_thread.c	/^static void __worker_thread_startup(void)$/;"	f	file:
+abs_builddir	Makefile	/^abs_builddir = \/home\/linlw\/workspace\/lfs\/src\/trackerserver$/;"	m
+abs_srcdir	Makefile	/^abs_srcdir = \/home\/linlw\/workspace\/lfs\/src\/trackerserver$/;"	m
+abs_top_builddir	Makefile	/^abs_top_builddir = \/home\/linlw\/workspace\/lfs$/;"	m
+abs_top_srcdir	Makefile	/^abs_top_srcdir = \/home\/linlw\/workspace\/lfs$/;"	m
+ac_ct_CC	Makefile	/^ac_ct_CC = gcc$/;"	m
+am__aclocal_m4_deps	Makefile	/^am__aclocal_m4_deps = $(top_srcdir)\/configure.ac$/;"	m
+am__can_run_installinfo	Makefile	/^am__can_run_installinfo = \\$/;"	m
+am__cd	Makefile	/^am__cd = CDPATH="$${ZSH_VERSION+.}$(PATH_SEPARATOR)" && cd$/;"	m
+am__configure_deps	Makefile	/^am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \\$/;"	m
+am__define_uniq_tagged_files	Makefile	/^am__define_uniq_tagged_files = \\$/;"	m
+am__depfiles_maybe	Makefile	/^am__depfiles_maybe = depfiles$/;"	m
+am__include	Makefile	/^am__include = include$/;"	m
+am__installdirs	Makefile	/^am__installdirs = "$(DESTDIR)$(bindir)"$/;"	m
+am__is_gnu_make	Makefile	/^am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'$/;"	m
+am__leading_dot	Makefile	/^am__leading_dot = .$/;"	m
+am__make_dryrun	Makefile	/^am__make_dryrun = (target_option=n; $(am__make_running_with_option))$/;"	m
+am__make_keepgoing	Makefile	/^am__make_keepgoing = (target_option=k; $(am__make_running_with_option))$/;"	m
+am__make_running_with_option	Makefile	/^am__make_running_with_option = \\$/;"	m
+am__mv	Makefile	/^am__mv = mv -f$/;"	m
+am__objects_1	Makefile	/^am__objects_1 =$/;"	m
+am__objects_2	Makefile	/^am__objects_2 = trackerd_func.$(OBJEXT) trackerd_queue.$(OBJEXT) \\$/;"	m
+am__objects_3	Makefile	/^am__objects_3 = $(am__objects_1) $(am__objects_2)$/;"	m
+am__quote	Makefile	/^am__quote = $/;"	m
+am__tagged_files	Makefile	/^am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)$/;"	m
+am__tar	Makefile	/^am__tar = $${TAR-tar} chof - "$$tardir"$/;"	m
+am__uniquify_input	Makefile	/^am__uniquify_input = $(AWK) '\\$/;"	m
+am__untar	Makefile	/^am__untar = $${TAR-tar} xf -$/;"	m
+am__v_CCLD_	Makefile	/^am__v_CCLD_ = $(am__v_CCLD_$(AM_DEFAULT_VERBOSITY))$/;"	m
+am__v_CCLD_0	Makefile	/^am__v_CCLD_0 = @echo "  CCLD    " $@;$/;"	m
+am__v_CCLD_1	Makefile	/^am__v_CCLD_1 = $/;"	m
+am__v_CC_	Makefile	/^am__v_CC_ = $(am__v_CC_$(AM_DEFAULT_VERBOSITY))$/;"	m
+am__v_CC_0	Makefile	/^am__v_CC_0 = @echo "  CC      " $@;$/;"	m
+am__v_CC_1	Makefile	/^am__v_CC_1 = $/;"	m
+am__v_GEN_	Makefile	/^am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))$/;"	m
+am__v_GEN_0	Makefile	/^am__v_GEN_0 = @echo "  GEN     " $@;$/;"	m
+am__v_GEN_1	Makefile	/^am__v_GEN_1 = $/;"	m
+am__v_P_	Makefile	/^am__v_P_ = $(am__v_P_$(AM_DEFAULT_VERBOSITY))$/;"	m
+am__v_P_0	Makefile	/^am__v_P_0 = false$/;"	m
+am__v_P_1	Makefile	/^am__v_P_1 = :$/;"	m
+am__v_at_	Makefile	/^am__v_at_ = $(am__v_at_$(AM_DEFAULT_VERBOSITY))$/;"	m
+am__v_at_0	Makefile	/^am__v_at_0 = @$/;"	m
+am__v_at_1	Makefile	/^am__v_at_1 = $/;"	m
+am_trackerd_OBJECTS	Makefile	/^am_trackerd_OBJECTS = trackerd.$(OBJEXT) $(am__objects_3)$/;"	m
+backlog	trackerd.h	/^	int backlog;$/;"	m	struct:setting_st
+base	trackerd.h	/^	struct event_base *base;$/;"	m	struct:libevent_dispatch_thread_st	typeref:struct:libevent_dispatch_thread_st::event_base
+base	trackerd.h	/^	struct event_base *base;$/;"	m	struct:libevent_thread_st	typeref:struct:libevent_thread_st::event_base
+base_path	trackerd.c	/^char base_path[MAX_PATH_SIZE] = {0};$/;"	v
+base_path	trackerd.h	/^	char base_path[MAX_PATH_SIZE];$/;"	m	struct:confs_st
+bin_PROGRAMS	Makefile	/^bin_PROGRAMS = trackerd$(EXEEXT)$/;"	m
+bindhost	trackerd.h	/^	char *bindhost;$/;"	m	struct:setting_st
+bindir	Makefile	/^bindir = ${exec_prefix}\/bin$/;"	m
+bindport	trackerd.h	/^	int bindport;$/;"	m	struct:setting_st
+body_len	trackerd_protocol.h	/^		uint64_t body_len;$/;"	m	struct:__anon1::__anon2
+build_alias	Makefile	/^build_alias = $/;"	m
+builddir	Makefile	/^builddir = .$/;"	m
+cfg_hashtable	trackerd.c	/^hash_table cfg_hashtable;$/;"	v
+cfgfilepath	trackerd.h	/^	char *cfgfilepath;$/;"	m	struct:setting_st
+cmd	trackerd_protocol.h	/^		uint8_t cmd;$/;"	m	struct:__anon1::__anon2
+conf_items_init	trackerd.c	/^static void conf_items_init(void)$/;"	f	file:
+confitems	trackerd.c	/^struct confs_st confitems;$/;"	v	typeref:struct:confs_st
+confs	trackerd.h	/^typedef struct confs_st confs;$/;"	t	typeref:struct:confs_st
+confs_st	trackerd.h	/^struct confs_st{$/;"	s
+conn	trackerd.h	/^typedef struct conn_st conn;$/;"	t	typeref:struct:conn_st
+conn_close	trackerd_thread.c	/^void conn_close(conn *c)$/;"	f
+conn_closed	trackerd.h	/^	conn_closed$/;"	e	enum:conn_states
+conn_free	trackerd_thread.c	/^void conn_free(conn *c)$/;"	f
+conn_handle_callback	trackerd.h	/^typedef int (*conn_handle_callback)(void *arg);$/;"	t
+conn_item	trackerd.h	/^typedef struct conn_item_st conn_item;$/;"	t	typeref:struct:conn_item_st
+conn_item_free	trackerd_queue.c	/^void conn_item_free(conn_item *item)$/;"	f
+conn_item_new	trackerd_queue.c	/^conn_item* conn_item_new()$/;"	f
+conn_item_queue_pop	trackerd_queue.c	/^conn_item* conn_item_queue_pop(queue_head *cq_head)$/;"	f
+conn_item_queue_push	trackerd_queue.c	/^void conn_item_queue_push(queue_head *cq_head,conn_item *conn_item)$/;"	f
+conn_item_st	trackerd.h	/^struct conn_item_st{$/;"	s
+conn_new	trackerd_thread.c	/^conn* conn_new(const int sfd,enum conn_states init_state,\\$/;"	f
+conn_nread	trackerd.h	/^	conn_nread,$/;"	e	enum:conn_states
+conn_parse_cmd	trackerd.h	/^	conn_parse_cmd,$/;"	e	enum:conn_states
+conn_read	trackerd.h	/^	conn_read,$/;"	e	enum:conn_states
+conn_st	trackerd.h	/^struct conn_st{$/;"	s
+conn_states	trackerd.h	/^enum conn_states{$/;"	g
+conn_waiting	trackerd.h	/^	conn_waiting,$/;"	e	enum:conn_states
+conn_write	trackerd.h	/^	conn_write,$/;"	e	enum:conn_states
+conns	trackerd.c	/^conn **conns;$/;"	v
+conns_init	trackerd.c	/^static void conns_init(void)$/;"	f	file:
+cq_head	trackerd.h	/^	queue_head cq_head;$/;"	m	struct:libevent_thread_st
+datadir	Makefile	/^datadir = ${datarootdir}$/;"	m
+datarootdir	Makefile	/^datarootdir = ${prefix}\/share$/;"	m
+default_buff_size	trackerd.h	/^	int default_buff_size;$/;"	m	struct:conn_item_st
+depcomp	Makefile	/^depcomp = $(SHELL) $(top_srcdir)\/depcomp$/;"	m
+docdir	Makefile	/^docdir = ${datarootdir}\/doc\/${PACKAGE_TARNAME}$/;"	m
+dvidir	Makefile	/^dvidir = ${docdir}$/;"	m
+event	trackerd.h	/^	struct event event;$/;"	m	struct:conn_st	typeref:struct:conn_st::event
+event_flags	trackerd.h	/^	int event_flags;$/;"	m	struct:conn_item_st
+event_flags	trackerd.h	/^	short event_flags;$/;"	m	struct:conn_st
+exec_prefix	Makefile	/^exec_prefix = ${prefix}$/;"	m
+freecitems	trackerd.c	/^queue_head freecitems;$/;"	v
+handle	trackerd.h	/^	conn_handle_callback handle;$/;"	m	struct:conn_st
+head	trackerd.h	/^	struct list_head head;$/;"	m	struct:queue_head_st	typeref:struct:queue_head_st::list_head
+header	trackerd_protocol.h	/^	}header;$/;"	m	union:__anon1	typeref:struct:__anon1::__anon2
+header_bytes	trackerd_protocol.h	/^	uint8_t header_bytes[10];$/;"	m	union:__anon1
+host_alias	Makefile	/^host_alias = $/;"	m
+htmldir	Makefile	/^htmldir = ${docdir}$/;"	m
+includedir	Makefile	/^includedir = ${prefix}\/include$/;"	m
+infodir	Makefile	/^infodir = ${datarootdir}\/info$/;"	m
+init_queue	trackerd_queue.c	/^void init_queue(queue_head *cq_head)$/;"	f
+init_state	trackerd.h	/^	enum conn_states init_state;$/;"	m	struct:conn_item_st	typeref:enum:conn_item_st::conn_states
+init_threads_cond	trackerd_thread.c	/^static pthread_cond_t init_threads_cond;$/;"	v	file:
+init_threads_count	trackerd_thread.c	/^static int init_threads_count = 0;$/;"	v	file:
+init_threads_lock	trackerd_thread.c	/^static pthread_mutex_t init_threads_lock;$/;"	v	file:
+install_sh	Makefile	/^install_sh = ${SHELL} \/home\/linlw\/workspace\/lfs\/install-sh$/;"	m
+install_sh_DATA	Makefile	/^install_sh_DATA = $(install_sh) -c -m 644$/;"	m
+install_sh_PROGRAM	Makefile	/^install_sh_PROGRAM = $(install_sh) -c$/;"	m
+install_sh_SCRIPT	Makefile	/^install_sh_SCRIPT = $(install_sh) -c$/;"	m
+last_tid	trackerd_thread.c	/^static int last_tid = -1;$/;"	v	file:
+libdir	Makefile	/^libdir = ${exec_prefix}\/lib$/;"	m
+libevent_dispatch_thread	trackerd.h	/^typedef struct libevent_dispatch_thread_st libevent_dispatch_thread;$/;"	t	typeref:struct:libevent_dispatch_thread_st
+libevent_dispatch_thread_st	trackerd.h	/^struct libevent_dispatch_thread_st{$/;"	s
+libevent_thread	trackerd.h	/^	struct libevent_thread_st *libevent_thread;$/;"	m	struct:conn_st	typeref:struct:conn_st::libevent_thread_st
+libevent_thread	trackerd.h	/^typedef struct libevent_thread_st libevent_thread;$/;"	t	typeref:struct:libevent_thread_st
+libevent_thread_st	trackerd.h	/^struct libevent_thread_st{$/;"	s
+libexecdir	Makefile	/^libexecdir = ${exec_prefix}\/libexec$/;"	m
+libtrackerd_a_SOURCES	Makefile	/^libtrackerd_a_SOURCES = $(TRACKERD_SOURCE_LIST_HEADER) $(TRACKERD_SOURCE_LIST)$/;"	m
+list	trackerd.h	/^	struct list_head list;$/;"	m	struct:conn_item_st	typeref:struct:conn_item_st::list_head
+localedir	Makefile	/^localedir = ${datarootdir}\/locale$/;"	m
+localstatedir	Makefile	/^localstatedir = ${prefix}\/var$/;"	m
+lock	trackerd.h	/^	pthread_mutex_t lock;	$/;"	m	struct:queue_head_st
+logger_file_name	trackerd.h	/^	char *logger_file_name;$/;"	m	struct:confs_st
+logger_level	trackerd.h	/^	char *logger_level;$/;"	m	struct:confs_st
+main	trackerd.c	/^int main(int argc,char** argv)$/;"	f
+main_thread_flag	trackerd.c	/^volatile bool main_thread_flag = true;$/;"	v
+mandir	Makefile	/^mandir = ${datarootdir}\/man$/;"	m
+max_fds	trackerd.c	/^int max_fds;$/;"	v
+maxconns	trackerd.h	/^	int maxconns;$/;"	m	struct:setting_st
+mkdir_p	Makefile	/^mkdir_p = $(MKDIR_P)$/;"	m
+mkinstalldirs	Makefile	/^mkinstalldirs = $(install_sh) -d$/;"	m
+network_read_result	trackerd_thread.c	/^enum network_read_result{$/;"	g	file:
+network_timeout	trackerd.h	/^	int network_timeout;$/;"	m	struct:confs_st
+network_write_result	trackerd_thread.c	/^enum network_write_result{$/;"	g	file:
+notify_event	trackerd.h	/^	struct event notify_event;$/;"	m	struct:libevent_thread_st	typeref:struct:libevent_thread_st::event
+notify_receive_fd	trackerd.h	/^	int notify_receive_fd;$/;"	m	struct:libevent_thread_st
+notify_send_fd	trackerd.h	/^	int notify_send_fd;$/;"	m	struct:libevent_thread_st
+num_threads	trackerd.h	/^	int num_threads;$/;"	m	struct:setting_st
+oldincludedir	Makefile	/^oldincludedir = \/usr\/include$/;"	m
+pdfdir	Makefile	/^pdfdir = ${docdir}$/;"	m
+pkgdatadir	Makefile	/^pkgdatadir = $(datadir)\/lfs$/;"	m
+pkgincludedir	Makefile	/^pkgincludedir = $(includedir)\/lfs$/;"	m
+pkglibdir	Makefile	/^pkglibdir = $(libdir)\/lfs$/;"	m
+pkglibexecdir	Makefile	/^pkglibexecdir = $(libexecdir)\/lfs$/;"	m
+prefix	Makefile	/^prefix = \/usr\/local$/;"	m
+program_transform_name	Makefile	/^program_transform_name = s,x,x,$/;"	m
+protocol_binary_header	trackerd_protocol.h	/^}protocol_binary_header;$/;"	t	typeref:union:__anon1
+protocol_header	trackerd.h	/^	protocol_binary_header protocol_header;$/;"	m	struct:conn_st
+psdir	Makefile	/^psdir = ${docdir}$/;"	m
+queue_active	trackerd_queue.c	/^int queue_active(queue_head *cq_head)$/;"	f
+queue_head	trackerd.h	/^typedef struct queue_head_st queue_head; $/;"	t	typeref:struct:queue_head_st
+queue_head_st	trackerd.h	/^struct queue_head_st{$/;"	s
+rbuff	trackerd.h	/^	char *rbuff;$/;"	m	struct:conn_st
+rbytes	trackerd.h	/^	int rbytes;$/;"	m	struct:conn_st
+rcurr	trackerd.h	/^	char *rcurr;$/;"	m	struct:conn_st
+rlbytes	trackerd.h	/^	int rlbytes;$/;"	m	struct:conn_st
+rsize	trackerd.h	/^	int rsize;$/;"	m	struct:conn_st
+sbindir	Makefile	/^sbindir = ${exec_prefix}\/sbin$/;"	m
+server_sockets	trackerd.c	/^static int server_sockets(const char *bind_host,const int port,const int timeout)$/;"	f	file:
+setting	trackerd.h	/^typedef struct setting_st setting;$/;"	t	typeref:struct:setting_st
+setting_st	trackerd.h	/^struct setting_st{$/;"	s
+settings	trackerd.c	/^struct setting_st settings;$/;"	v	typeref:struct:setting_st
+settings_init	trackerd.c	/^static void settings_init(void)$/;"	f	file:
+sfd	trackerd.h	/^	int sfd;$/;"	m	struct:conn_item_st
+sfd	trackerd.h	/^	int sfd;$/;"	m	struct:conn_st
+sharedstatedir	Makefile	/^sharedstatedir = ${prefix}\/com$/;"	m
+sig_handle	trackerd.c	/^static void sig_handle(const int sig)$/;"	f	file:
+socket_bind	trackerd.c	/^static int socket_bind(int sfd,const char*bind_host,const int port)$/;"	f	file:
+socketpidfile	trackerd.h	/^	char *socketpidfile;$/;"	m	struct:setting_st
+srcdir	Makefile	/^srcdir = .$/;"	m
+state	trackerd.h	/^	enum conn_states state;$/;"	m	struct:conn_st	typeref:enum:conn_st::conn_states
+state	trackerd_protocol.h	/^		uint8_t state;$/;"	m	struct:__anon1::__anon2
+subdir	Makefile	/^subdir = src\/trackerserver$/;"	m
+sysconfdir	Makefile	/^sysconfdir = ${prefix}\/etc$/;"	m
+target_alias	Makefile	/^target_alias = $/;"	m
+thread_id	trackerd.h	/^	pthread_t thread_id;$/;"	m	struct:libevent_dispatch_thread_st
+thread_id	trackerd.h	/^	pthread_t thread_id;$/;"	m	struct:libevent_thread_st
+thread_stack_size	trackerd.h	/^	int thread_stack_size;$/;"	m	struct:confs_st
+threads	trackerd_thread.c	/^static libevent_thread *threads = NULL;$/;"	v	file:
+top_build_prefix	Makefile	/^top_build_prefix = ..\/..\/$/;"	m
+top_builddir	Makefile	/^top_builddir = ..\/..$/;"	m
+top_srcdir	Makefile	/^top_srcdir = ..\/..$/;"	m
+trackerd_DEPENDENCIES	Makefile	/^trackerd_DEPENDENCIES = $(top_builddir)\/src\/common\/liblfscommon.a$/;"	m
+trackerd_LDADD	Makefile	/^trackerd_LDADD = $(LDADD)$/;"	m
+trackerd_OBJECTS	Makefile	/^trackerd_OBJECTS = $(am_trackerd_OBJECTS)$/;"	m
+trackerd_SOURCES	Makefile	/^trackerd_SOURCES = trackerd.c $(libtrackerd_a_SOURCES) $/;"	m
+trackerd_accept_loop	trackerd_thread.c	/^void trackerd_accept_loop(int sfd)$/;"	f
+trackerd_destroy	trackerd.c	/^static void trackerd_destroy()$/;"	f	file:
+trackerd_load_from_conf_file	trackerd_func.c	/^int trackerd_load_from_conf_file()$/;"	f
+trackerd_thread_init	trackerd_thread.c	/^int trackerd_thread_init(int nthreads)$/;"	f
+transform	Makefile	/^transform = $(program_transform_name)$/;"	m
+usage	trackerd.c	/^static void usage()$/;"	f	file:
+usage_license	trackerd.c	/^static void usage_license()$/;"	f	file:
+verbose	trackerd.h	/^	int verbose;$/;"	m	struct:setting_st
+wbuff	trackerd.h	/^	char *wbuff;$/;"	m	struct:conn_st
+wbytes	trackerd.h	/^	int wbytes;$/;"	m	struct:conn_st
+wcurr	trackerd.h	/^	char *wcurr;$/;"	m	struct:conn_st
+which	trackerd.h	/^	short which;$/;"	m	struct:conn_st
+writeto	trackerd.h	/^	enum conn_states writeto;$/;"	m	struct:conn_st	typeref:enum:conn_st::conn_states
+wsize	trackerd.h	/^	int wsize;$/;"	m	struct:conn_st
+wused	trackerd.h	/^	int wused;$/;"	m	struct:conn_st
