@@ -30,7 +30,7 @@
 
 
 file_ctx **fctxs = NULL;
-static int __newname_pack(file_ctx *fctx);
+static int __fileidname_pack(file_ctx *fctx);
 static int __mapname_pack(file_ctx *fctx);
 static int __blockmapname_pack(file_ctx *fctx);
 
@@ -93,7 +93,7 @@ file_ctx* file_ctx_new(const int sfd,const int buffer_size,enum file_op_type opt
 		fctx->f_cleanup_func = NULL;
 		fctx->f_buff = (char*)malloc(buffer_size);
 		memset(fctx->f_orginl_name,0,sizeof(fctx->f_orginl_name));
-		memset(fctx->f_new_name,0,sizeof(fctx->f_new_name));
+		memset(fctx->f_b64_name,0,sizeof(fctx->f_b64_name));
 		memset(fctx->f_map_name,0,sizeof(fctx->f_map_name));
 		memset(fctx->f_block_map_name,0,sizeof(fctx->f_block_map_name));
 		memset(fctx->f_id,0,sizeof(fctx->f_id));
@@ -119,7 +119,7 @@ file_ctx* file_ctx_new(const int sfd,const int buffer_size,enum file_op_type opt
 	fctx->f_dio_func = NULL;
 	fctx->f_cleanup_func = NULL;
 	memset(fctx->f_orginl_name,0,sizeof(fctx->f_orginl_name));
-	memset(fctx->f_new_name,0,sizeof(fctx->f_new_name));
+	memset(fctx->f_b64_name,0,sizeof(fctx->f_b64_name));
 	memset(fctx->f_map_name,0,sizeof(fctx->f_map_name));
 	memset(fctx->f_block_map_name,0,sizeof(fctx->f_block_map_name));
 	memset(fctx->f_id,0,sizeof(fctx->f_id));
@@ -149,7 +149,7 @@ void file_ctx_clean(file_ctx *fctx)
 	fctx->f_dio_func = NULL;
 	fctx->f_cleanup_func = NULL;
 	memset(fctx->f_orginl_name,0,sizeof(fctx->f_orginl_name));
-	memset(fctx->f_new_name,0,sizeof(fctx->f_new_name));
+	memset(fctx->f_b64_name,0,sizeof(fctx->f_b64_name));
 	memset(fctx->f_map_name,0,sizeof(fctx->f_map_name));
 	memset(fctx->f_block_map_name,0,sizeof(fctx->f_block_map_name));
 	memset(fctx->f_id,0,sizeof(fctx->f_id));
@@ -205,11 +205,12 @@ int file_unlink(file_ctx *fctx)
 int file_metedata_pack(file_ctx *fctx)
 {
 	assert(fctx != NULL);
-	__newname_pack(fctx);
+	__fileidname_pack(fctx);
 	__mapname_pack(fctx);
 	__blockmapname_pack(fctx);
 	memset(fctx->f_id,0,sizeof(fctx->f_id));
-	snprintf(fctx->f_id,sizeof(fctx->f_id),"%s/B%02X/%s",\
+	snprintf(fctx->f_id,sizeof(fctx->f_id),"%s/%s/B%02X/%s",\
+			confitems.group_name,\
 			confitems.volume_name,\
 			fctx->f_mnt_block_index,\
 			fctx->f_map_name);
@@ -255,18 +256,16 @@ int64_t get_filesize_by_name(const char *file_name)
 	return LFS_OK;
 }
 
-static int __newname_pack(file_ctx *fctx)
+static int __fileidname_pack(file_ctx *fctx)
 {
 	char f_timestamp_buff[LFS_FILE_METEDATA_TIME_BUFF_SIZE] = {0};
 	char f_offset_buff[LFS_FILE_METEDATA_OFFSET_BUFF_SIZE] = {0};
 	char f_size_buff[LFS_FILE_METEDATA_SIZE_BUFF_SIZE] = {0};
 	char f_crc32_buff[LFS_FILE_METEDATA_CRC32_BUFF_SIZE] = {0};
 	char f_name_buff[LFS_FILE_METEDATA_NAME_BUFF_SIZE] = {0};
-	char *f_suffix;
-	int f_nameb64_len;
 	char *p;
 
-	memset(fctx->f_new_name,0,sizeof(fctx->f_new_name));
+	memset(fctx->f_b64_name,0,sizeof(fctx->f_b64_name));
 
 	long2buff((long)fctx->f_timestamp,f_timestamp_buff);	
 	long2buff(fctx->f_offset,f_offset_buff);
@@ -282,17 +281,14 @@ static int __newname_pack(file_ctx *fctx)
 	p = p + LFS_FILE_METEDATA_SIZE_BUFF_SIZE;
 	memcpy(p,f_crc32_buff,LFS_FILE_METEDATA_CRC32_BUFF_SIZE);
 	p = p + LFS_FILE_METEDATA_CRC32_BUFF_SIZE;
-	f_nameb64_len = Base64encode_len(p - f_name_buff);
-	Base64encode(fctx->f_new_name,(const char*)f_name_buff,p - f_name_buff);
-	f_suffix = strchr(fctx->f_orginl_name,'.');
-	memcpy(fctx->f_new_name + (f_nameb64_len- 1),f_suffix,strlen(f_suffix));
+	Base64encode(fctx->f_b64_name,(const char*)f_name_buff,p - f_name_buff);
 	return LFS_OK;
 }
 
 static int __mapname_pack(file_ctx *fctx)
 {
 	memset(fctx->f_map_name,0,sizeof(fctx->f_map_name));
-	sprintf(fctx->f_map_name,"%02X/%02X/%s",(unsigned int)fctx->f_mp_pre,(unsigned int)fctx->f_mp_suf,fctx->f_new_name);
+	sprintf(fctx->f_map_name,"%02X/%02X/%s",(unsigned int)fctx->f_mp_pre,(unsigned int)fctx->f_mp_suf,fctx->f_b64_name);
 	return LFS_OK;
 }
 

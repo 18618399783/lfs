@@ -135,7 +135,7 @@ static int __datasevrvolume_insert(datasevr_volume *dv,datasevr_block *dblk)
 		if((ret = __datasevrvolume_resize(dv)) != 0)
 		{
 			logger_error("file: "__FILE__", line: %d, " \
-					"The dataserver volume %s resize failed!", __LINE__,dblk->volume_name);
+					"The dataserver volume %s resize failed!", __LINE__,dblk->map_info);
 			return ret;
 		}
 	}

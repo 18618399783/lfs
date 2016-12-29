@@ -25,6 +25,7 @@
 #include "lfs_client_types.h"
 #include "ts_service.h"
 
+
 static void write_error_msg(conn *c,protocol_resp_status resp_status);
 
 
@@ -55,15 +56,15 @@ protocol_resp_status handle_cmd_register(conn *c)
 	dblk->state = init;
 	btype = (int)buff2long(req->server_type);
 	memcpy(dblk->ip_addr,req->ds_ipaddr,IP_ADDRESS_SIZE);
-	memcpy(dblk->volume_name,req->volume_name,strlen(req->volume_name));
+	memcpy(dblk->map_info,req->map_info,strlen(req->map_info));
 	dblk->port = (int)buff2long(req->ds_port);
 	dblk->weight = (int)buff2long(req->weight);
 	dblk->heart_beat_interval = (int)buff2long(req->heart_beat_interval);
 	dblk->reg_time = (time_t)buff2long(req->reg_time);
 	dblk->started_time = (time_t)buff2long(req->started_time);
 	dblk->block_id = hash_func((const void*)dblk->ip_addr,(size_t)strlen(dblk->ip_addr));
-	dblk->parent_volume_id = hash_func((const void*)dblk->volume_name,strlen(dblk->volume_name));
-	master = cluster_datasevrmasterblock_get((const char*)req->volume_name,(size_t)strlen(req->volume_name));
+	dblk->parent_volume_id = hash_func((const void*)dblk->map_info,strlen(dblk->map_info));
+	master = cluster_datasevrmasterblock_get((const char*)req->map_info,(size_t)strlen(req->map_info));
 	if((master == NULL) && (btype == master_server))
 	{
 		dblk->type = master_server;
@@ -103,16 +104,17 @@ protocol_resp_status handle_cmd_fullsyncreq(conn *c)
 	procl_header->header_s.state = (uint8_t)PROTOCOL_RESP_STATUS_SUCCESS;
 	c->wbytes = sizeof(protocol_header);
 
-
 	datasevr_block *dblk;
-	dblk = cluster_datasevrblock_find((const char*)req->volume_name,(size_t)strlen(req->volume_name),(const void*)req->ds_ipaddr,(size_t)strlen(req->ds_ipaddr));
+	dblk = cluster_datasevrblock_find((const char*)req->map_info,\
+			(size_t)strlen(req->map_info),(const void*)req->ds_ipaddr,\
+			(size_t)strlen(req->ds_ipaddr));
 	if(dblk == NULL)
 	{
 		status = PROTOCOL_RESP_STATUS_ERROR_UNREGISTER;
 		return status;
 	}
 	
-	master = cluster_datasevrmasterblock_get((const char*)req->volume_name,(size_t)strlen(req->volume_name));
+	master = cluster_datasevrmasterblock_get((const char*)req->map_info,(size_t)strlen(req->map_info));
 	if(master == NULL)
 	{
 		dblk->state = wait_sync;
@@ -139,7 +141,9 @@ protocol_resp_status handle_cmd_heartbeat(conn *c)
 	time_t current_time = time(NULL);
 	
 	req_body = (datasevr_heartbeat_body_req*)c->rcurr;
-	dblk = cluster_datasevrblock_find((const char*)req_body->volume_name,(size_t)strlen(req_body->volume_name),(const void*)req_body->ds_ipaddr,(size_t)strlen(req_body->ds_ipaddr));
+	dblk = cluster_datasevrblock_find((const char*)req_body->map_info,\
+			(size_t)strlen(req_body->map_info),(const void*)req_body->ds_ipaddr,\
+			(size_t)strlen(req_body->ds_ipaddr));
 	if(dblk == NULL)
 	{
 		status = PROTOCOL_RESP_STATUS_ERROR_UNREGISTER; 
@@ -153,7 +157,8 @@ protocol_resp_status handle_cmd_heartbeat(conn *c)
 		.header_s.cmd = (uint8_t)PROTOCOL_CMD_DATASERVER_HEARTBEAT,
 		.header_s.state = (uint8_t)PROTOCOL_RESP_STATUS_SUCCESS
 	};
-	master = cluster_datasevrmasterblock_get((const char*)req_body->volume_name,(size_t)strlen(req_body->volume_name));
+	master = cluster_datasevrmasterblock_get((const char*)req_body->map_info,\
+			(size_t)strlen(req_body->map_info));
 	if(master != NULL)
 	{
 		procl_header.header_s.body_len = sizeof(datasevr_masterblock_body_resp);
@@ -187,7 +192,8 @@ protocol_resp_status handle_cmd_syncreport(conn *c)
 	datasevr_volume *dv = NULL;
 	
 	req_body = (datasevr_syncreport_body_req*)c->rcurr;
-	dblk = cluster_datasevrblock_find((const char*)req_body->volume_name,(size_t)strlen(req_body->volume_name),(const void*)req_body->ds_ipaddr,(size_t)strlen(req_body->ds_ipaddr));
+	dblk = cluster_datasevrblock_find((const char*)req_body->map_info,\
+			(size_t)strlen(req_body->map_info),(const void*)req_body->ds_ipaddr,(size_t)strlen(req_body->ds_ipaddr));
 	if(dblk == NULL)
 	{
 		status = PROTOCOL_RESP_STATUS_ERROR_NONEDATASEVERBLOCKS; 
@@ -195,6 +201,7 @@ protocol_resp_status handle_cmd_syncreport(conn *c)
 	}
 	
 	dblk->last_synctimestamp = (time_t)buff2long(req_body->last_synctimestamp);
+	dblk->last_heartbeat_time = time(NULL);
 	dblk->state = active;
 
 	protocol_header procl_header = {
@@ -203,7 +210,7 @@ protocol_resp_status handle_cmd_syncreport(conn *c)
 		.header_s.state = (uint8_t)PROTOCOL_RESP_STATUS_SUCCESS
 	};
 
-	dv = cluster_datasevrvolume_find((const char*)req_body->volume_name,(size_t)strlen(req_body->volume_name));
+	dv = cluster_datasevrvolume_find((const char*)req_body->map_info,(size_t)strlen(req_body->map_info));
 	if(dv == NULL)
 	{
 		status = PROTOCOL_RESP_STATUS_ERROR_NONEDATASEVERVOLUME; 
@@ -269,7 +276,9 @@ protocol_resp_status handle_cmd_statreport(conn *c)
 	wlc_ctx wctx;
 	
 	req_body = (datasevr_statreport_body_req*)c->rcurr;
-	dblk = cluster_datasevrblock_find((const char*)req_body->volume_name,(size_t)strlen(req_body->volume_name),(const void*)req_body->ds_ipaddr,(size_t)strlen(req_body->ds_ipaddr));
+	dblk = cluster_datasevrblock_find((const char*)req_body->map_info,\
+			(size_t)strlen(req_body->map_info),(const void*)req_body->ds_ipaddr,\
+			(size_t)strlen(req_body->ds_ipaddr));
 	if(dblk == NULL)
 	{
 		status = PROTOCOL_RESP_STATUS_ERROR_NONEDATASEVERBLOCKS; 
@@ -282,13 +291,14 @@ protocol_resp_status handle_cmd_statreport(conn *c)
 	dblk->total_mb = (int)buff2long(req_body->total_mb);
 	dblk->free_mb = (int)buff2long(req_body->free_mb);
 	dblk->last_statreporttimestamp = (time_t)current_time;
+	dblk->last_heartbeat_time = (time_t)current_time;
 	dblk->state = active;
 	if(dblk->type == master)
 	{
 		wctx.dblk = dblk;
 		wctx.old_wlc = old_conns * dblk->weight;
 		wctx.new_wlc = new_conns * dblk->weight;
-		cluster_wlc_add(clusters.wlcsl,&wctx);
+		cluster_wlc_block_add(clusters.wlcsl,&wctx);
 	}
 	procl_header = (protocol_header*)c->wbuff;
 	procl_header->header_s.body_len = 0x00;
@@ -321,7 +331,9 @@ protocol_resp_status handle_cmd_quited(conn *c)
 	datasevr_block *dblk = NULL;
 	
 	req_body = (datasevr_heartbeat_body_req*)c->rcurr;
-	dblk = cluster_datasevrblock_find((const char*)req_body->volume_name,(size_t)strlen(req_body->volume_name),(const void*)req_body->ds_ipaddr,(size_t)strlen(req_body->ds_ipaddr));
+	dblk = cluster_datasevrblock_find((const char*)req_body->map_info,\
+			(size_t)strlen(req_body->map_info),(const void*)req_body->ds_ipaddr,\
+			(size_t)strlen(req_body->ds_ipaddr));
 	if(dblk == NULL)
 	{
 		status = PROTOCOL_RESP_STATUS_ERROR; 
@@ -368,8 +380,8 @@ protocol_resp_status handle_cmd_readtracker(conn *c)
 
 	req_body = (lfs_read_tracker_req*)c->rcurr;
 	timestamp = buff2long(req_body->file_timestamp);
-	dblk = cluster_readdatasevrblock_get((const char*)req_body->volume_name,\
-			(size_t)strlen(req_body->volume_name),timestamp);
+	dblk = cluster_readdatasevrblock_get((const char*)req_body->map_info,\
+			(size_t)strlen(req_body->map_info),timestamp);
 	if(dblk == NULL)
 	{
 		return PROTOCOL_RESP_STATUS_ERROR_NO_READ_DATASERVER;

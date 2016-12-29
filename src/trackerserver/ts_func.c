@@ -67,7 +67,7 @@ void conf_items_init(void)
 	confitems.thread_stack_size = DEFAULT_THREAD_STACK_SIZE;
 	confitems.conn_buffer_size = DEFAULT_CONN_BUFF_SIZE;
 	confitems.work_threads = DEFAULT_THREADS_NUMBER;
-	confitems.crawler_thread_interval = DEFAULT_CRAWLER_THREAD_INTERVAL;
+	confitems.heart_beat_interval = DEFAULT_HEART_BEAT_INTERVAL;
 	confitems.snapshot_thread_interval = DEFAULT_SNAPSHOT_THREAD_INTERVAL; 
 }
 
@@ -177,7 +177,7 @@ int set_cfg2globalobj()
 	confitems.thread_stack_size = cfg_get_intvalue(&cfg_hashtable,"thread.stack.size",DEFAULT_THREAD_STACK_SIZE);
 	confitems.conn_buffer_size = cfg_get_intvalue(&cfg_hashtable,"conn.buffer.size",DEFAULT_CONN_BUFF_SIZE);
 	confitems.work_threads = cfg_get_intvalue(&cfg_hashtable,"work.threads",DEFAULT_THREADS_NUMBER);
-	confitems.crawler_thread_interval = cfg_get_intvalue(&cfg_hashtable,"crawler.thread.interval",DEFAULT_CRAWLER_THREAD_INTERVAL);
+	confitems.heart_beat_interval = cfg_get_intvalue(&cfg_hashtable,"heart.beat.interval",DEFAULT_HEART_BEAT_INTERVAL);
 	confitems.snapshot_thread_interval = cfg_get_intvalue(&cfg_hashtable,"snapshot.thread.interval",DEFAULT_SNAPSHOT_THREAD_INTERVAL);
 	return LFS_OK;
 }

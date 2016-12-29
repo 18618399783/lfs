@@ -562,7 +562,7 @@ static int __tracker_register(trackerclient_conn *c)
 	req_header->header_s.body_len = sizeof(datasevr_reg_body_req);
 	req_header->header_s.cmd = PROTOCOL_CMD_DATASERVER_REGISTER;
 
-	strcpy(req_body->volume_name,confitems.volume_name);
+	sprintf(req_body->map_info,"%s/%s",confitems.group_name,confitems.volume_name);
 	strcpy(req_body->ds_ipaddr,confitems.bind_addr);
 	long2buff((int64_t)confitems.bind_port,req_body->ds_port);
 	long2buff((int64_t)confitems.weight,req_body->weight);
@@ -612,7 +612,7 @@ static int __tracker_hearbeat(trackerclient_conn *c)
 	req_header->header_s.body_len = sizeof(datasevr_heartbeat_body_req);
 	req_header->header_s.cmd = PROTOCOL_CMD_DATASERVER_HEARTBEAT;
 
-	strcpy(req_body->volume_name,confitems.volume_name);
+	sprintf(req_body->map_info,"%s/%s",confitems.group_name,confitems.volume_name);
 	strcpy(req_body->ds_ipaddr,confitems.bind_addr);
 
 	if((ret = client_senddata(c->sfd,req_buff,sizeof(req_buff))) != 0)
@@ -652,7 +652,7 @@ static int __tracker_report_syncinfo(trackerclient_conn *c)
 	req_header->header_s.body_len = sizeof(datasevr_syncreport_body_req);
 	req_header->header_s.cmd = PROTOCOL_CMD_DATASERVER_SYNCREPORT;
 
-	strcpy(req_body->volume_name,confitems.volume_name);
+	sprintf(req_body->map_info,"%s/%s",confitems.group_name,confitems.volume_name);
 	strcpy(req_body->ds_ipaddr,confitems.bind_addr);
 	long2buff((int64_t)ctxs.sync_timestamp,req_body->last_synctimestamp);
 
@@ -694,7 +694,7 @@ static int __tracker_report_blockstate(trackerclient_conn *c)
 	req_header->header_s.body_len = sizeof(datasevr_statreport_body_req);
 	req_header->header_s.cmd = PROTOCOL_CMD_DATASERVER_STATREPORT;
 
-	strcpy(req_body->volume_name,confitems.volume_name);
+	sprintf(req_body->map_info,"%s/%s",confitems.group_name,confitems.volume_name);
 	strcpy(req_body->ds_ipaddr,confitems.bind_addr);
 	long2buff((int64_t)ctxs.curr_conns,req_body->conns);
 	long2buff((int64_t)mounts.block_total_size_mb,req_body->total_mb);
@@ -751,7 +751,7 @@ static int __tracker_fullsync_req(trackerclient_conn *c,char *master_ipaddr,int 
 	req_header->header_s.body_len = sizeof(datasevr_fullsyncreq_body_req);
 	req_header->header_s.cmd = PROTOCOL_CMD_DATASERVER_FULLSYNC;
 
-	strcpy(req_body->volume_name,confitems.volume_name);
+	snprintf(req_body->map_info,sizeof(req_body->map_info),"%s/%s",confitems.group_name,confitems.volume_name);
 	strcpy(req_body->ds_ipaddr,confitems.bind_addr);
 
 
@@ -835,7 +835,7 @@ static int __tracker_quit(trackerclient_conn *c)
 	req_header->header_s.body_len = sizeof(datasevr_quited_body_req);
 	req_header->header_s.cmd = PROTOCOL_CMD_DATASERVER_QUITED;
 
-	strcpy(req_body->volume_name,confitems.volume_name);
+	sprintf(req_body->map_info,"%s/%s",confitems.group_name,confitems.volume_name);
 	strcpy(req_body->ds_ipaddr,confitems.bind_addr);
 
 	if((ret = client_senddata(c->sfd,req_buff,sizeof(req_buff))) != 0)

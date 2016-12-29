@@ -22,6 +22,7 @@
 #include "sock_opt.h"
 
 #define DEFAULT_NETWORK_TIMEOUT 30
+#define TEST_GROUP_NAME "g1"
 #define TEST_VOLUME_NAME "v1"
 #define TEST_TIMESTAMP 1480861525  
 
@@ -98,7 +99,7 @@ int send_write_req(int sfd)
 	req_header->header_s.cmd = PROTOCOL_CMD_READ_TRACKER_REQ;
 
 	req = (lfs_read_tracker_req*)(req_buff + sizeof(protocol_header));
-	memcpy(req->volume_name,TEST_VOLUME_NAME,strlen(TEST_VOLUME_NAME));
+	sprintf(req->map_info,"%s/%s",TEST_GROUP_NAME,TEST_VOLUME_NAME);
 	long2buff((int64_t)TEST_TIMESTAMP,req->file_timestamp);
 	if((ret = senddata_nblock(sfd,(void*)req_buff,sizeof(req_buff),DEFAULT_NETWORK_TIMEOUT)) != 0)
 	{

@@ -136,7 +136,7 @@ struct file_ctx_st{
 	int f_mp_suf;
 	enum file_op_type f_op_type;
 	char f_orginl_name[LFS_FILE_NAME_SIZE];
-	char f_new_name[LFS_FILE_NAME_SIZE];
+	char f_b64_name[LFS_BASE64_BUFF_SIZE];
 	char f_map_name[LFS_FILE_MAP_NAME_SIZE];
 	char f_block_map_name[LFS_FILE_BLOCK_MAP_NAME_SIZE];
 	char f_id[LFS_FILE_ID_SIZE];

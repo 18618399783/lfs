@@ -19,10 +19,13 @@ extern "C"{
 #define LFS_FILE_METEDATA_CRC32_BUFF_SIZE 4
 #define LFS_FILE_METEDATA_NAME_BUFF_SIZE 32
 
+#define LFS_GROUP_NAME_LEN_SIZE 16
 #define LFS_VOLUME_NAME_LEN_SIZE 16
+#define LFS_DATASERVER_MAP_INFO_SIZE 33
 #define LFS_STRUCT_PROP_LEN_SIZE8 8
 #define LFS_STRUCT_PROP_LEN_SIZE4 4
 #define LFS_FILE_ID_SIZE 256
+#define LFS_B64_FILE_ID_SIZE 256
 #define LFS_FILE_NAME_SIZE 128
 #define LFS_FILE_MAP_NAME_SIZE 256
 #define LFS_FILE_BLOCK_MAP_NAME_SIZE 256
@@ -57,13 +60,23 @@ extern "C"{
 
 #define LFS_SPLIT_BLOCK_INDEX_BY_FILE_ID(file_id)\
 	char fid_buff[LFS_FILE_ID_SIZE] = {0};\
+	char fid_vmn_buff[LFS_FILE_NAME_SIZE] = {0};\
 	char fid_mn_buff[LFS_FILE_NAME_SIZE] = {0};\
 	char *pblock_index;\
 	char fid_map_name_buff[LFS_FILE_MAP_NAME_SIZE] = {0};\
 	char *p;\
 	\
 	snprintf(fid_buff,sizeof(fid_buff),"%s",file_id);\
+	\
 	p = strchr(fid_buff,LFS_FILE_ID_SEPERATOR);\
+	if(p == NULL)\
+	{\
+		return LFS_ERROR;\
+	}\
+	*p = '\0';\
+	snprintf(fid_vmn_buff,sizeof(fid_vmn_buff),"%s",p + 1);\
+	\
+	p = strchr(fid_vmn_buff,LFS_FILE_ID_SEPERATOR);\
 	if(p == NULL)\
 	{\
 		return LFS_ERROR;\
@@ -81,6 +94,7 @@ extern "C"{
 
 #define LFS_SPLIT_VOLUME_NAME_AND_BLOCK_INDEX_BY_FILE_ID(file_id)\
 	char fid_buff[LFS_FILE_ID_SIZE] = {0};\
+	char fid_vmn_buff[LFS_FILE_NAME_SIZE] = {0};\
 	char fid_mn_buff[LFS_FILE_NAME_SIZE] = {0};\
 	char *volume_name;\
 	char *pblock_index;\
@@ -88,14 +102,24 @@ extern "C"{
 	char *p;\
 	\
 	snprintf(fid_buff,sizeof(fid_buff),"%s",file_id);\
+	\
 	p = strchr(fid_buff,LFS_FILE_ID_SEPERATOR);\
 	if(p == NULL)\
 	{\
 		return LFS_ERROR;\
 	}\
 	*p = '\0';\
-	volume_name = fid_buff;\
+	snprintf(fid_vmn_buff,sizeof(fid_vmn_buff),"%s",p + 1);\
+	\
+	p = strchr(fid_vmn_buff,LFS_FILE_ID_SEPERATOR);\
+	if(p == NULL)\
+	{\
+		return LFS_ERROR;\
+	}\
+	*p = '\0';\
+	volume_name = fid_vmn_buff;\
 	snprintf(fid_mn_buff,sizeof(fid_mn_buff),"%s",p + 1);\
+	\
 	p = strchr(fid_mn_buff,LFS_FILE_ID_SEPERATOR);\
 	if(p == NULL)\
 	{\

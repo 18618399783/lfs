@@ -123,15 +123,20 @@ int set_cfg2globalobj(void)
 	}
 	memset(base_path,0,MAX_PATH_SIZE);
 	snprintf(base_path,sizeof(base_path),"%s",pbp);
-	pbp = NULL;
-	pbp = cfg_get_strvalue(&cfg_hashtable,"volume.name");
+	pbp = cfg_get_strvalue(&cfg_hashtable,"group.name");
 	if(pbp == NULL)
 	{
 		fprintf(stderr,"The cfg file must include the \"group.name\"items!\n");
 		return LFS_ERROR;
 	}
+	confitems.group_name = pbp;
+	pbp = cfg_get_strvalue(&cfg_hashtable,"volume.name");
+	if(pbp == NULL)
+	{
+		fprintf(stderr,"The cfg file must include the \"volume.name\"items!\n");
+		return LFS_ERROR;
+	}
 	confitems.volume_name = pbp;
-	pbp = NULL;
 	pbp = cfg_get_strvalue(&cfg_hashtable,"block.mount");
 	if(pbp == NULL)
 	{
@@ -139,7 +144,6 @@ int set_cfg2globalobj(void)
 		return LFS_ERROR;
 	}
 	confitems.block_mount = pbp;
-	pbp = NULL;
 	pbp = cfg_get_strvalue(&cfg_hashtable,"tracker.servers");
 	if(pbp == NULL)
 	{

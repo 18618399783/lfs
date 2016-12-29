@@ -215,7 +215,7 @@ static void __snapshot_flush()
 									BAT_DATA_SEPERATOR_SPLITSYMBOL,\
 									blks[j]->block_id,\
 									BAT_DATA_SEPERATOR_SPLITSYMBOL,\
-									blks[j]->volume_name,\
+									blks[j]->map_info,\
 									BAT_DATA_SEPERATOR_SPLITSYMBOL,\
 									blks[j]->ip_addr,\
 									BAT_DATA_SEPERATOR_SPLITSYMBOL,\
@@ -236,7 +236,7 @@ static void __snapshot_flush()
 							{
 								logger_error("file: "__FILE__", line: %d, " \
 										"Write volume name %s to \"%s\" failed,errno:%d," \
-										"error info:%s!", __LINE__,blks[j]->volume_name,VOLUME_BLOCK_SNAPSHOT_FILENAME,errno,strerror(errno));
+										"error info:%s!", __LINE__,blks[j]->map_info,VOLUME_BLOCK_SNAPSHOT_FILENAME,errno,strerror(errno));
 								ret = (errno != 0)?errno:EIO;
 								break;
 							}
@@ -324,7 +324,7 @@ static int __snapshot_data_load(const char *fpath)
 		}
 		blk->parent_volume_id = atoi(trim(fields[0]));
 		blk->block_id = atoi(trim(fields[1]));
-		snprintf(blk->volume_name,sizeof(blk->volume_name),"%s",trim(fields[2]));
+		snprintf(blk->map_info,sizeof(blk->map_info),"%s",trim(fields[2]));
 		snprintf(blk->ip_addr,sizeof(blk->ip_addr),"%s",trim(fields[3]));
 		blk->type = atoi(trim(fields[4]));
 		blk->port = atoi(trim(fields[5]));

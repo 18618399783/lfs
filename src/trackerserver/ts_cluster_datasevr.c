@@ -61,7 +61,7 @@ datasevr_block* cluster_wlc_writedatasevrblock_get()
 {
 	datasevr_block *dblk = NULL;
 
-	dblk = cluster_wlc_get(clusters.wlcsl);
+	dblk = cluster_wlc_master_block_get(clusters.wlcsl);
 	return dblk;
 }
 
@@ -73,26 +73,31 @@ datasevr_block* cluster_readdatasevrblock_get(const char *vn,size_t nvn,int64_t 
 	vid = hash_func((const void*)vn,nvn);
 	cluster_lock(vid);
 	dv = do_cluster_find(vid);
+	cluster_unlock(vid);
 	if((dv != NULL) && (dv->blocks))
 	{
 		int i;
 		for(i = 0; i < dv->block_count; i++)
 		{
+			time_t curr_time = time(NULL);
 			if((i == dv->write_block_index) || \
 					(i == dv->last_read_block_index))
 				continue;
 			if((dv->blocks[i]) && \
+					((curr_time - dv->blocks[i]->last_heartbeat_time) <= \
+					confitems.heart_beat_interval) && \
 					(dv->blocks[i]->last_synctimestamp >= timestamp))
 			{
 				dblk = dv->blocks[i];
 				dv->last_read_block_index = i;
-				goto fin;
+				break;
 			}
 		}
-		dblk = dv->blocks[dv->write_block_index];
+		if(dblk == NULL)
+		{
+			dblk = dv->blocks[dv->write_block_index];
+		}
 	}
-fin:
-	cluster_unlock(vid);
 	return dblk;
 }
 
@@ -133,7 +138,7 @@ static int __do_insert(datasevr_volume *dv,datasevr_block *dblk)
 		if((ret = do_block_insert(dv,dblk)) != 0)
 		{
 			logger_error("file: "__FILE__", line: %d, " \
-					"The (id %u,ip %s) datasevr block insert to the %s datasevr volume failed!", __LINE__,dblk->block_id,dblk->ip_addr,dblk->volume_name);
+					"The (id %u,ip %s) datasevr block insert to the %s datasevr volume failed!", __LINE__,dblk->block_id,dblk->ip_addr,dblk->map_info);
 			return ret;
 		}
 	}

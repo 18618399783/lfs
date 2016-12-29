@@ -24,7 +24,7 @@ struct lfs_tracker_resp_st{
 typedef struct lfs_tracker_resp_st lfs_tracker_resp;
 
 struct lfs_read_tracker_req_st{
-	char volume_name[LFS_VOLUME_NAME_LEN_SIZE];
+	char map_info[LFS_DATASERVER_MAP_INFO_SIZE];
 	char file_timestamp[LFS_STRUCT_PROP_LEN_SIZE8];
 };
 typedef struct lfs_read_tracker_req_st lfs_read_tracker_req;
@@ -37,7 +37,7 @@ struct lfs_fileupload_req_st{
 typedef struct lfs_fileupload_req_st lfs_fileupload_req;
 
 struct lfs_fileupload_resp_st{
-	char file_id[LFS_FILE_ID_SIZE];
+	char file_b64_id[LFS_B64_FILE_ID_SIZE];
 };
 typedef struct lfs_fileupload_resp_st lfs_fileupload_resp;
 

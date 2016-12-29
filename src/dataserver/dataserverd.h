@@ -66,8 +66,6 @@ struct ctx_st{
 	time_t sync_timestamp;
 	enum datasevr_type server_type;
 	bool is_fullsyncdone;
-	//char master_ipaddr[IP_ADDRESS_SIZE];
-	//int master_port;
 	int last_mount_block_index;
 	int block_opt_count;
 };
@@ -75,6 +73,7 @@ struct ctx_st{
 
 struct confs_st{
 	char base_path[MAX_PATH_SIZE];
+	char *group_name;
 	char *volume_name;
 	char *logger_level;
 	char *logger_file_name;

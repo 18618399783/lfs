@@ -231,7 +231,7 @@ wlc_skiplist_node* wlcsl_find(wlc_skiplist *wlcsl,int wlc,datasevr_block *dblk)
 	return NULL;
 }
 
-int cluster_wlc_add(wlc_skiplist *wlcsl,wlc_ctx *wctx)
+int cluster_wlc_block_add(wlc_skiplist *wlcsl,wlc_ctx *wctx)
 {
 	assert(wlcsl != NULL);
 	assert(wctx != NULL);
@@ -250,7 +250,7 @@ int cluster_wlc_add(wlc_skiplist *wlcsl,wlc_ctx *wctx)
 	return LFS_OK;
 }
 
-datasevr_block* cluster_wlc_get(wlc_skiplist *wlcsl)
+datasevr_block* cluster_wlc_master_block_get(wlc_skiplist *wlcsl)
 {
 	assert(wlcsl != NULL);
 	datasevr_block *dblk = NULL;
@@ -262,31 +262,21 @@ datasevr_block* cluster_wlc_get(wlc_skiplist *wlcsl)
 		x = x->level[0].forward;
 		if(x)
 		{
-			dblk = x->dblk;
-			break;
+			time_t curr_time = time(NULL);
+			if((curr_time - x->dblk->last_heartbeat_time) > \
+					confitems.heart_beat_interval)
+			{
+				x->dblk->state = off_line;
+				wlcsl_delete(wlcsl,x->wlc,x->dblk,NULL);
+				continue;
+			}
+			else
+			{
+				dblk = x->dblk;
+				break;
+			}
 		}
 	}
 	return dblk;
 }
-
-#if 0
-wlc_skiplist_node* wlcsl_find_by_id(wlc_skiplist *wlcsl,uint32_t id)
-{
-	int i;
-	wlc_skiplist_node *x;
-
-	for(i = wlcsl->level - 1; i >= 0; i--)
-	{
-		x = wlcsl->header;
-		while(x->level[i].forward)
-		{
-			x = x->level[i].forward;
-			//printf("---level:%d-[%d,%u]---\n",i,x->wlc,x->id);	
-			if(x && (x->id == id))
-				return x;
-		}
-	}
-	return NULL;
-}
-#endif
 

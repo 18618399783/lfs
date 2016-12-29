@@ -49,12 +49,12 @@ ds_service.o: ds_service.c /usr/include/stdc-predef.h \
  ../../src/common/common_define.h ../../src/common/logger.h \
  /usr/include/syslog.h /usr/include/x86_64-linux-gnu/sys/syslog.h \
  /usr/include/x86_64-linux-gnu/bits/syslog-path.h \
- ../../src/common/crc32.h ../../src/include/lfs_client_types.h \
- ../../src/include/lfs_define.h ../../src/include/lfs_types.h ds_types.h \
- /usr/local/include/event.h /usr/local/include/event2/event-config.h \
- /usr/local/include/evutil.h /usr/local/include/event2/util.h \
- /usr/include/netdb.h /usr/include/netinet/in.h \
- /usr/include/x86_64-linux-gnu/sys/socket.h \
+ ../../src/common/crc32.h ../../src/common/base64.h \
+ ../../src/include/lfs_client_types.h ../../src/include/lfs_define.h \
+ ../../src/include/lfs_types.h ds_types.h /usr/local/include/event.h \
+ /usr/local/include/event2/event-config.h /usr/local/include/evutil.h \
+ /usr/local/include/event2/util.h /usr/include/netdb.h \
+ /usr/include/netinet/in.h /usr/include/x86_64-linux-gnu/sys/socket.h \
  /usr/include/x86_64-linux-gnu/sys/uio.h \
  /usr/include/x86_64-linux-gnu/bits/uio.h \
  /usr/include/x86_64-linux-gnu/bits/socket.h \
@@ -223,6 +223,8 @@ ds_service.o: ds_service.c /usr/include/stdc-predef.h \
 /usr/include/x86_64-linux-gnu/bits/syslog-path.h:
 
 ../../src/common/crc32.h:
+
+../../src/common/base64.h:
 
 ../../src/include/lfs_client_types.h:
 

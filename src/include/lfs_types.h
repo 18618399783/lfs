@@ -28,7 +28,7 @@ enum datasevr_state{
 };
 
 typedef struct datasevr_reg_body_req_st{
-	char volume_name[LFS_VOLUME_NAME_LEN_SIZE + 1];
+	char map_info[LFS_DATASERVER_MAP_INFO_SIZE + 1];
 	char ds_ipaddr[IP_ADDRESS_SIZE];
 	char ds_port[LFS_STRUCT_PROP_LEN_SIZE8];
 	char weight[LFS_STRUCT_PROP_LEN_SIZE8];
@@ -36,10 +36,10 @@ typedef struct datasevr_reg_body_req_st{
 	char reg_time[LFS_STRUCT_PROP_LEN_SIZE8];
 	char started_time[LFS_STRUCT_PROP_LEN_SIZE8];
 	char server_type[LFS_STRUCT_PROP_LEN_SIZE8];
-} datasevr_reg_body_req;
+}datasevr_reg_body_req;
 
 typedef struct datasevr_fullsyncreq_body_req_st{
-	char volume_name[LFS_VOLUME_NAME_LEN_SIZE + 1];
+	char map_info[LFS_DATASERVER_MAP_INFO_SIZE + 1];
 	char ds_ipaddr[IP_ADDRESS_SIZE];
 }datasevr_fullsyncreq_body_req;
 
@@ -49,18 +49,18 @@ typedef struct datasevr_masterblock_body_resp_st{
 }datasevr_masterblock_body_resp;
 
 typedef struct datasevr_heartbeat_body_req_st{
-	char volume_name[LFS_VOLUME_NAME_LEN_SIZE + 1];
+	char map_info[LFS_DATASERVER_MAP_INFO_SIZE + 1];
 	char ds_ipaddr[IP_ADDRESS_SIZE];
 }datasevr_heartbeat_body_req;
 
 typedef struct datasevr_syncreport_body_req_st{
-	char volume_name[LFS_VOLUME_NAME_LEN_SIZE + 1];
+	char map_info[LFS_DATASERVER_MAP_INFO_SIZE + 1];
 	char ds_ipaddr[IP_ADDRESS_SIZE];
 	char last_synctimestamp[LFS_STRUCT_PROP_LEN_SIZE8];
 }datasevr_syncreport_body_req;
 
 typedef struct datasevr_statreport_body_req_st{
-	char volume_name[LFS_VOLUME_NAME_LEN_SIZE + 1];
+	char map_info[LFS_DATASERVER_MAP_INFO_SIZE + 1];
 	char ds_ipaddr[IP_ADDRESS_SIZE];
 	char conns[LFS_STRUCT_PROP_LEN_SIZE8];
 	char total_mb[LFS_STRUCT_PROP_LEN_SIZE8];
@@ -68,7 +68,7 @@ typedef struct datasevr_statreport_body_req_st{
 }datasevr_statreport_body_req;
 
 typedef struct datasevr_quited_body_req_st{
-	char volume_name[LFS_VOLUME_NAME_LEN_SIZE + 1];
+	char map_info[LFS_DATASERVER_MAP_INFO_SIZE + 1];
 	char ds_ipaddr[IP_ADDRESS_SIZE];
 }datasevr_quited_body_req;
 

@@ -21,6 +21,7 @@
 #include "shared_func.h"
 #include "logger.h"
 #include "crc32.h"
+#include "base64.h"
 #include "lfs_client_types.h"
 #include "lfs_types.h"
 #include "ds_types.h"
@@ -134,8 +135,10 @@ void file_upload_done_callback(conn *c,const int err_no)
 			resp_header->header_s.state = (uint8_t)PROTOCOL_RESP_STATUS_SUCCESS;
 			c->wbytes = sizeof(protocol_header);
 
-			resp = (lfs_fileupload_resp*)(c->wbuff + sizeof(protocol_header));
-			memcpy(resp->file_id,c->fctx->f_id,strlen(c->fctx->f_id));
+			resp = (lfs_fileupload_resp*)(c->wbuff + \
+					sizeof(protocol_header));
+			Base64encode(resp->file_b64_id,\
+					(const char*)c->fctx->f_id,strlen(c->fctx->f_id));
 			c->wbytes += sizeof(lfs_fileupload_resp);
 			dio_notify_nio(c,conn_write,EV_WRITE|EV_PERSIST);
 			return;

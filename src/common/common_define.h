@@ -13,6 +13,7 @@
 #define LOG_FILE_DIR          "lfs"
 #define CONF_FILE_DIR         "conf"
 #define DEFAULT_MAX_CONNECTONS 256
+#define LFS_BASE64_BUFF_SIZE 256
 
 
 #ifdef OS_BITS

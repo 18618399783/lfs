@@ -13,6 +13,7 @@
 #include "lfs_types.h"
 #include "ts_wlc.h"
 
+
 enum server_type{
 	master = 0,
 	slave
@@ -22,7 +23,7 @@ typedef struct datasevr_block_st{
 	uint32_t parent_volume_id;
 	uint32_t block_id;
 	enum datasevr_state state;
-	char volume_name[LFS_VOLUME_NAME_LEN_SIZE + 1];
+	char map_info[LFS_DATASERVER_MAP_INFO_SIZE];
 	char ip_addr[IP_ADDRESS_SIZE];
 	enum server_type type;
 	int port;

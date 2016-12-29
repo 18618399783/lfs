@@ -52,8 +52,8 @@ wlc_skiplist_node* wlcsl_find(wlc_skiplist *wlcsl,int wlc,\
 #if 0
 wlc_skiplist_node* wlcsl_find_by_id(wlc_skiplist *wlcsl,uint32_t id);
 #endif
-int cluster_wlc_add(wlc_skiplist *wlcsl,wlc_ctx *wctx);
-struct datasevr_block_st* cluster_wlc_get(wlc_skiplist *wlcsl);
+int cluster_wlc_block_add(wlc_skiplist *wlcsl,wlc_ctx *wctx);
+struct datasevr_block_st* cluster_wlc_master_block_get(wlc_skiplist *wlcsl);
 
 #ifdef __cplusplus
 }

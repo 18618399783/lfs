@@ -24,11 +24,11 @@
 #define DEFAULT_LISTEN_BACKLOG 1024
 #define DEFAULT_THREADS_NUMBER 4
 #define DEFAULT_NETWORK_TIMEOUT  60
+#define DEFAULT_HEART_BEAT_INTERVAL  30
 
 #define CONN_ITEMS_PER_ALLOC 64
 #define DEFAULT_CONN_BUFF_SIZE 4 * 1024
 #define DEFAULT_THREAD_STACK_SIZE 512 * 1024
-#define DEFAULT_CRAWLER_THREAD_INTERVAL 20
 #define DEFAULT_SNAPSHOT_THREAD_INTERVAL 30
 #define BAT_DATA_SEPERATOR_SPLITSYMBOL '|'
 
@@ -61,7 +61,7 @@ struct confs_st{
 	int thread_stack_size;
 	int conn_buffer_size;
 	int work_threads;
-	int crawler_thread_interval;
+	int heart_beat_interval;
 	int snapshot_thread_interval;
 };
 typedef struct confs_st confs;
