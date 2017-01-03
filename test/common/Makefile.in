@@ -76,7 +76,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-noinst_PROGRAMS = test_hash_table$(EXEEXT)
+noinst_PROGRAMS = test_hash_table$(EXEEXT) test_str_split$(EXEEXT)
 subdir = test/common
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/depcomp
@@ -93,6 +93,11 @@ am_test_hash_table_OBJECTS = test_hash_table.$(OBJEXT)
 test_hash_table_OBJECTS = $(am_test_hash_table_OBJECTS)
 test_hash_table_LDADD = $(LDADD)
 test_hash_table_DEPENDENCIES =  \
+	$(top_builddir)/src/common/liblfscommon.a
+am_test_str_split_OBJECTS = test_str_split.$(OBJEXT)
+test_str_split_OBJECTS = $(am_test_str_split_OBJECTS)
+test_str_split_LDADD = $(LDADD)
+test_str_split_DEPENDENCIES =  \
 	$(top_builddir)/src/common/liblfscommon.a
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -122,8 +127,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(test_hash_table_SOURCES)
-DIST_SOURCES = $(test_hash_table_SOURCES)
+SOURCES = $(test_hash_table_SOURCES) $(test_str_split_SOURCES)
+DIST_SOURCES = $(test_hash_table_SOURCES) $(test_str_split_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -243,7 +248,8 @@ AM_CFLAGS = -D_GNU_SOURCE -Wformat=0 \
 
 AM_LDFLAGS = 
 LDADD = $(top_builddir)/src/common/liblfscommon.a
-test_hash_table_SOURCES = test_hash_table.c 
+test_hash_table_SOURCES = test_hash_table.c
+test_str_split_SOURCES = test_str_split.c
 all: all-am
 
 .SUFFIXES:
@@ -286,6 +292,10 @@ test_hash_table$(EXEEXT): $(test_hash_table_OBJECTS) $(test_hash_table_DEPENDENC
 	@rm -f test_hash_table$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_hash_table_OBJECTS) $(test_hash_table_LDADD) $(LIBS)
 
+test_str_split$(EXEEXT): $(test_str_split_OBJECTS) $(test_str_split_DEPENDENCIES) $(EXTRA_test_str_split_DEPENDENCIES) 
+	@rm -f test_str_split$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_str_split_OBJECTS) $(test_str_split_LDADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
@@ -293,6 +303,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_hash_table.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_str_split.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

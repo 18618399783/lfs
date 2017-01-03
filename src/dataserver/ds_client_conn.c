@@ -69,10 +69,3 @@ void update_trackerclientconn_state(trackerclient_conn *c,enum trackerclient_sta
 	return;
 }
 
-void set_trackerclientconn_index(trackerclient_conn *c,int index)
-{
-	assert(c != NULL);
-	c->index = index;
-	return;
-}
-

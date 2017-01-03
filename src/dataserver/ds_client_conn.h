@@ -45,7 +45,6 @@ trackerclient_conn* trackerclientconn_new();
 void trackerclientconn_close(trackerclient_conn *c);
 void set_trackerclientconn_state(trackerclient_conn *c,enum trackerclient_state new_state);
 void update_trackerclientconn_state(trackerclient_conn *c,enum trackerclient_state new_state);
-void set_trackerclientconn_index(trackerclient_conn *c,int index);
 
 #ifdef __cplusplus
 }

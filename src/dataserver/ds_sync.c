@@ -87,7 +87,7 @@ enum full_sync_state full_sync_from_master(connect_info *cinfo)
 		if(connectserver_nb(cinfo->sfd,cinfo->ipaddr,cinfo->port,confitems.network_timeout) != 0)
 		{
 			logger_error("file: "__FILE__", line: %d, " \
-					"Failed to connect master server %s:%d,errno:%d",\
+					"Failed to connect master server %s:%d,errno:%d,"\
 					"error info:%s!",\
 					__LINE__,cinfo->ipaddr,cinfo->port,errno,strerror(errno));
 			if(nfaild_count > 3)

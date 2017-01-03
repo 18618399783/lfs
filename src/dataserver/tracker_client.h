@@ -17,6 +17,7 @@ extern "C"{
 #endif
 
 struct tracker_info_st{
+	int index;
 	int port;
 	char ip_addr[IP_ADDRESS_SIZE];
 };

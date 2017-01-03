@@ -6,7 +6,6 @@ AM_LDFLAGS =
 
 LDADD = $(top_builddir)/src/common/liblfscommon.a
 
-
-noinst_PROGRAMS = test_hash_table
-
-test_hash_table_SOURCES = test_hash_table.c 
+noinst_PROGRAMS = test_hash_table test_str_split
+test_hash_table_SOURCES = test_hash_table.c
+test_str_split_SOURCES = test_str_split.c

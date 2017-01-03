@@ -65,7 +65,7 @@ int tracker_report_thread_start(void)
 	pthread_attr_t pattr;
 	pthread_t tid;
 	int ret;
-	int i = 0;
+	tracker_info *tis,*tie;
 
 	if((ret = init_pthread_attr(&pattr,confitems.thread_stack_size)) != 0)
 	{
@@ -84,16 +84,17 @@ int tracker_report_thread_start(void)
 	memset(tracker_reporter_tids,0,sizeof(pthread_t) * tracker_groups.tracker_count);
 	pthread_mutex_init(&tracker_reporter_thread_lock,NULL);
 	tracker_reporter_count = 0; 
-	for(i = 0;i < tracker_groups.tracker_count; i++)
+	tie = tracker_groups.trackers + tracker_groups.tracker_count;
+	for(tis = tracker_groups.trackers;tis < tie; tis++)
 	{
-		if((ret = pthread_create(&tid,&pattr,__tracker_client_thread_entrance,(void*)&i)) != 0)
+		if((ret = pthread_create(&tid,&pattr,__tracker_client_thread_entrance,(void*)tis)) != 0)
 		{
 			logger_error("file: "__FILE__", line: %d, " \
 						"Failed to create tracker report thread! errno info: %s", __LINE__,strerror(ret));
 			return ret;
 		}
 		pthread_mutex_lock(&tracker_reporter_thread_lock);
-		tracker_reporter_tids[i] = tid;
+		tracker_reporter_tids[tracker_reporter_count] = tid;
 		tracker_reporter_count++;
 		pthread_mutex_unlock(&tracker_reporter_thread_lock);
 	}
@@ -104,12 +105,7 @@ int tracker_report_thread_start(void)
 static void* __tracker_client_thread_entrance(void *arg)
 {
 	trackerclient_conn *c = NULL;
-	int *index = (int*)arg;
-
-	while(do_run_tracker_reported_thread && tracker_reporter_count < tracker_groups.tracker_count)
-	{
-		sleep(1);
-	}
+	tracker_info *ti = (tracker_info*)arg;
 
 	c = trackerclientconn_new();
 	if(NULL == c)
@@ -118,13 +114,7 @@ static void* __tracker_client_thread_entrance(void *arg)
 					"Failed to allocate tracker client connection!", __LINE__);
 		return NULL;
 	}
-	set_trackerclientconn_index(c,(*index));
-	if(NULL == c)
-	{
-		logger_error("file: "__FILE__", line: %d, " \
-					"Failed to allocate memery to tracker conn!", __LINE__);
-		return NULL;
-	}
+	c->index = ti->index;
 	set_trackerclientconn_state(c,connectd);
 
 	__trackerclient_state_machine((void*)c);	
@@ -138,6 +128,14 @@ static void __trackerclient_state_machine(void *arg)
 	bool is_local_haseregistered = false;
 	bool is_local_hasefullsync = false;
 	trackerclient_conn *c = (trackerclient_conn*)arg;
+
+	logger_debug("----index:%d,ip:%s:%d-----",c->index,tracker_groups.trackers[c->index].ip_addr,tracker_groups.trackers[c->index].port);
+	return;
+
+	while(do_run_tracker_reported_thread && tracker_reporter_count < tracker_groups.tracker_count)
+	{
+		sleep(1);
+	}
 
 	while(do_run_tracker_reported_thread)
 	{
@@ -382,8 +380,7 @@ int trackerclient_info_init()
 {
 	int ret = LFS_OK;
 	int tracker_count = 0;
-	int in = 0;
-	int i = 0;
+	int in = 0,index = 0;
 	const char de[2] = "|";
 	const char di[2] = ":";
 	const char sep = '|';
@@ -393,17 +390,18 @@ int trackerclient_info_init()
 	char *p[32];
 
 	buff = confitems.tracker_servers;
+	
 	assert(buff != NULL);
+	memset(&tracker_groups,0,sizeof(tracker_groups));
 
 	tracker_count = get_split_str_count(buff,sep); 
-	if(tracker_count == 0) return -1;
 	tracker_groups.tracker_count = tracker_count;
-	tracker_groups.trackers = (tracker_info*)malloc(sizeof(tracker_group) * tracker_count);
+	tracker_groups.trackers = (tracker_info*)malloc(sizeof(tracker_info) * tracker_count);
 	if(tracker_groups.trackers == NULL)
 	{
 		logger_error("file: "__FILE__", line: %d, " \
 					"Failed to allocate memery to trackers group!", __LINE__);
-		return -2;
+		return LFS_ERROR;
 	}
 	memset(tracker_groups.trackers,0,sizeof(tracker_info) * tracker_count);
 
@@ -412,20 +410,20 @@ int trackerclient_info_init()
 		buff = p[in];
 	   while((p[in] = strtok_r(buff,di,&inner_ptr)) != NULL)	
 	   {
+		   if((in % 2) == 0)
+		   {
+			   memcpy(tracker_groups.trackers[index].ip_addr,p[in],strlen(p[in]));
+		   }
+		   else if((in % 2) == 1)
+		   {
+			   tracker_groups.trackers[index].port = atoi(p[in]);
+		   }
 		   in++;
 		   buff = NULL;
 	   }
+	   tracker_groups.trackers[index].index = index;
+	   index++;
 	   buff = NULL;
-	}
-	int idx = 0;
-	for(i = 0; i < in; i++)
-	{
-		if(i % 2 == 0)
-			memcpy(tracker_groups.trackers[idx].ip_addr,p[i],strlen(p[i]));
-		else
-			tracker_groups.trackers[idx].port = atoi(p[i]);
-		if((i != 0) && (i / 2 == 0))
-			idx++;
 	}
 	return ret;
 }
