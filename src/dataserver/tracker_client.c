@@ -46,7 +46,6 @@ struct tracker_group_st tracker_groups;
 static void* __tracker_client_thread_entrance(void *arg);
 static void __trackerclient_state_machine(void *arg); 
 
-static int __check_masterblock_change(trackerclient_conn *c);
 static int __check_volumeblocks_change(trackerclient_conn *c);
 static int __tracker_register(trackerclient_conn *c);
 static int __tracker_hearbeat(trackerclient_conn *c);
@@ -128,9 +127,6 @@ static void __trackerclient_state_machine(void *arg)
 	bool is_local_haseregistered = false;
 	bool is_local_hasefullsync = false;
 	trackerclient_conn *c = (trackerclient_conn*)arg;
-
-	logger_debug("----index:%d,ip:%s:%d-----",c->index,tracker_groups.trackers[c->index].ip_addr,tracker_groups.trackers[c->index].port);
-	return;
 
 	while(do_run_tracker_reported_thread && tracker_reporter_count < tracker_groups.tracker_count)
 	{
@@ -233,7 +229,7 @@ static void __trackerclient_state_machine(void *arg)
 				int ret = LFS_OK;
 				connect_info cinfo;
 				memset(&cinfo,0,sizeof(connect_info));
-				if((!is_local_hasefullsync) && (ctxs.server_type == slave_server))
+				if(!is_local_hasefullsync)
 				{
 					if((ret = pthread_mutex_lock(&tracker_reporter_thread_lock)))
 					{
@@ -343,8 +339,8 @@ static void __trackerclient_state_machine(void *arg)
 					c->last_syncreport_time = current_time;
 				}
 
-				if((current_time - c->last_reportstate_time \
-							>= confitems.state_report_interval) && (ctxs.server_type == master_server))
+				if(current_time - c->last_reportstate_time \
+							>= confitems.state_report_interval)
 				{
 					if(__tracker_report_blockstate(c) != 0)
 					{
@@ -428,6 +424,7 @@ int trackerclient_info_init()
 	return ret;
 }
 
+#if 0
 static int __check_masterblock_change(trackerclient_conn *c)
 {
 	int ret = LFS_OK;
@@ -470,24 +467,9 @@ static int __check_masterblock_change(trackerclient_conn *c)
 		return ret;
 	}
 	resp_body = (datasevr_masterblock_body_resp*)resp_buff;
-	if(is_local_block((const char*)resp_body->master_ipaddr))
-	{
-		if(ctxs.server_type == slave_server)
-		{
-			do_run_async_thread = 1;
-			ctxs.server_type = master_server; 
-		}
-	}
-	else
-	{
-		if(ctxs.server_type == master_server)
-		{
-			async_thread_quit();
-			ctxs.server_type = slave_server; 
-		}
-	}
 	return ret;
 }
+#endif
 
 static int __check_volumeblocks_change(trackerclient_conn *c)
 {
@@ -537,10 +519,7 @@ static int __check_volumeblocks_change(trackerclient_conn *c)
 				LFS_MAX_BLOCKS_EACH_VOLUME);
 		return LFS_ERROR;
    }
-   if(ctxs.server_type == master_server)
-   {
-	   ret = __volume_blocks_manager((block_brief_info_resp*)resp_buff,bcount);
-   }
+   ret = __volume_blocks_manager((block_brief_info_resp*)resp_buff,bcount);
 	return ret; 
 }
 
@@ -551,7 +530,7 @@ static int __tracker_register(trackerclient_conn *c)
 	int64_t resp_bytes = 0;
 	protocol_header *req_header;
 	datasevr_reg_body_req *req_body;
-	char req_buff[sizeof(protocol_header) + sizeof(datasevr_reg_body_req)];
+	char req_buff[sizeof(protocol_header) + sizeof(datasevr_reg_body_req)] = {0};
 
 	memset(req_buff,0,sizeof(req_buff));
 	req_header = (protocol_header*)req_buff;
@@ -567,7 +546,6 @@ static int __tracker_register(trackerclient_conn *c)
 	long2buff((int64_t)confitems.heart_beat_interval,req_body->heart_beat_interval);
 	long2buff((int64_t)current_time,req_body->reg_time);
 	long2buff((int64_t)ctxs.started_time,req_body->started_time);
-	long2buff((int64_t)ctxs.server_type,req_body->server_type);
 
 
 	if((ret = client_senddata(c->sfd,req_buff,sizeof(req_buff))) != 0)
@@ -585,7 +563,7 @@ static int __tracker_register(trackerclient_conn *c)
 	if((ret = client_recvheader(c->sfd,&resp_bytes)) != 0)
 	{
 		logger_error("file: "__FILE__", line: %d, " \
-					"Server(%s:%d) read register response data from tracker server(%s:%d) failed!", \
+					"Server(%s:%d) read register response from tracker server(%s:%d) failed!", \
 				   	__LINE__,\
 					confitems.bind_addr,\
 					confitems.bind_port,\
@@ -633,12 +611,13 @@ static int __tracker_hearbeat(trackerclient_conn *c)
 			tracker_groups.trackers[c->index].port,\
 			ret);
 #endif
-	return __check_masterblock_change(c);
+	return __check_volumeblocks_change(c);
 }
 
 static int __tracker_report_syncinfo(trackerclient_conn *c)
 {
 	int ret = LFS_OK;
+	int64_t resp_bytes;
 	protocol_header *req_header;
 	datasevr_syncreport_body_req *req_body;
 	char req_buff[sizeof(protocol_header) + sizeof(datasevr_syncreport_body_req)];
@@ -657,7 +636,18 @@ static int __tracker_report_syncinfo(trackerclient_conn *c)
 	if((ret = client_senddata(c->sfd,req_buff,sizeof(req_buff))) != 0)
 	{
 		logger_error("file: "__FILE__", line: %d, " \
-					"Server(%s:%d) write sync timestamp package data to tracker server(%s:%d) failed!", \
+					"Server(%s:%d) send sync message package data to tracker server(%s:%d) failed!", \
+				   	__LINE__,\
+					confitems.bind_addr,\
+					confitems.bind_port,\
+					tracker_groups.trackers[c->index].ip_addr,\
+					tracker_groups.trackers[c->index].port);
+		return ret;
+	}
+	if((ret = client_recvheader(c->sfd,&resp_bytes)) != 0)
+	{
+		logger_error("file: "__FILE__", line: %d, " \
+					"Server(%s:%d) receive sync message package data to tracker server(%s:%d) failed!", \
 				   	__LINE__,\
 					confitems.bind_addr,\
 					confitems.bind_port,\
@@ -674,7 +664,7 @@ static int __tracker_report_syncinfo(trackerclient_conn *c)
 			tracker_groups.trackers[c->index].port,\
 			ret);
 #endif
-	return __check_volumeblocks_change(c);
+	return ret;
 }
 
 static int __tracker_report_blockstate(trackerclient_conn *c)
@@ -771,11 +761,15 @@ static int __tracker_fullsync_req(trackerclient_conn *c,char *master_ipaddr,int 
 		switch(ret)
 		{
 			case PROTOCOL_RESP_STATUS_ERROR_UNREGISTER:
-				logger_warning("The tracker server %s:%d is not register.",tracker_groups.trackers[c->index].ip_addr,tracker_groups.trackers[c->index].port,c->sfd);
+				logger_warning("The tracker server %s:%d is not register.",\
+						tracker_groups.trackers[c->index].ip_addr,\
+						tracker_groups.trackers[c->index].port,c->sfd);
 				c->nextto = registerd;
 				break;
 			case PROTOCOL_RESP_STATUS_SYNCSETTING_WAITING:
-				logger_warning("The tracker server %s:%d volume belongs to no master server.",tracker_groups.trackers[c->index].ip_addr,tracker_groups.trackers[c->index].port,c->sfd);
+				logger_warning("The tracker server %s:%d volume belongs to no master server.",\
+						tracker_groups.trackers[c->index].ip_addr,\
+						tracker_groups.trackers[c->index].port,c->sfd);
 				c->nextto = fullsync;
 				sleep(confitems.heart_beat_interval);
 				break;

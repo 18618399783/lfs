@@ -162,7 +162,6 @@ int main(int argc,char** argv)
 		"d" /*daemon mode*/
 		"b:" /*listen backlog*/
 		"f:" /*conf file path*/
-		"t:" /*server type,master or slave*/
 		"hiV" /*help,licence info,version*/
 		))){
 		switch(c){
@@ -174,16 +173,6 @@ int main(int argc,char** argv)
 			break;
 		case 'f':
 			settings.cfgfilepath = optarg;
-			break;
-		case 't':
-			if(strcmp(optarg,"master") == 0)
-			{
-				ctxs.server_type = master_server;
-			}
-			else
-			{
-				ctxs.server_type = slave_server;
-			}
 			break;
 		case 'h':
 			usage();

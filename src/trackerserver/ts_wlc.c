@@ -90,7 +90,6 @@ wlc_skiplist_node* wlcsl_insert(wlc_skiplist *wlcsl,int wlc,datasevr_block *dblk
 	unsigned int rank[WLC_SKIPLIST_MAX_LEVEL];
 	int i,level;
 
-	assert(wlc != 0);
 	x = wlcsl->header;
 	for(i = wlcsl->level - 1;i >= 0; i--)
 	{

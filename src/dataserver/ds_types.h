@@ -122,6 +122,19 @@ struct libevent_dispatch_thread_st{
 	struct event_base *base;
 };
 
+struct binlog_ctx_st{
+	int binlog_fd;
+	int curr_binlog_file_index;
+	int64_t binlog_file_size;
+	int binlog_wcache_buff_len;
+	time_t binlog_file_update_timestamp;
+	char binlog_path[MAX_PATH_SIZE];
+	char binlog_mark_file_name[MAX_PATH_SIZE];
+	char binlog_file_name[MAX_PATH_SIZE];
+	char* binlog_wcache_buff;
+};
+typedef struct binlog_ctx_st binlog_ctx;
+
 enum file_op_type{
 	FILE_OP_TYPE_READ = 0,
 	FILE_OP_TYPE_WRITE = 1,

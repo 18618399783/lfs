@@ -56,7 +56,6 @@ static enum full_sync_state __full_sync_handle(connect_info *cinfo,sync_ctx *sct
 enum full_sync_state full_sync_from_master(connect_info *cinfo)
 {
 	assert(cinfo != NULL);
-	int ret;
 	enum full_sync_state fstate = F_SYNC_OK;
 	int nfaild_count = 0;
 	int do_full_sync_flag = 1;
@@ -130,11 +129,6 @@ enum full_sync_state full_sync_from_master(connect_info *cinfo)
 			CTXS_UNLOCK();
 			continue;
 		}
-		if((ret = curr_binlog_file_index_set(fmark.b_file_count - 1)) != 0)
-		{
-			fstate = F_SYNC_ERROR;
-			goto err;
-		}
 		if(fmark.b_file_count > 1)
 		{
 			fstate = __full_sync_data_from_master(cinfo,&sctx);
@@ -154,6 +148,7 @@ enum full_sync_state full_sync_from_master(connect_info *cinfo)
 		}
 		else
 		{
+			rbctx.curr_binlog_file_index = fmark.b_file_count;
 			fstate = F_SYNC_FINISH;
 			break;
 		}
@@ -412,7 +407,7 @@ static void* __async_thread_entry(void *arg)
 				usleep(5);
 				continue;
 			}
-			if((ret = asyncctx_init(bbrief,&sctx)) != 0)
+			if((ret = asyncctx_init(bbrief,&sctx,&bctx)) != 0)
 			{
 				logger_crit("file: "__FILE__", line: %d, " \
 						"Init slave server %s:%d's binlog bat context failed.",\
@@ -426,7 +421,7 @@ static void* __async_thread_entry(void *arg)
 					(bbrief->state == on_line || \
 					 bbrief->state == active))
 			{
-				if((bstate = binlog_read(&sctx,&brecord,&record_length)) == B_FILE_OK)
+				if((bstate = binlog_read(&sctx,&bctx,&brecord,&record_length)) == B_FILE_OK)
 				{
 					if((ret = __async_handle(sfd,&sctx,bbrief,&brecord)) != LFS_OK)
 					{
@@ -744,7 +739,7 @@ static enum full_sync_state __full_sync_data_from_master(connect_info *cinfo,syn
 	enum binlog_file_state bstate;
 	enum full_sync_state fstate = F_SYNC_OK;
 
-	if((ret = fullsyncctx_init(sctx,cinfo)) != 0)
+	if((ret = fullsyncctx_init(sctx,&rbctx,cinfo)) != 0)
 	{
 		logger_crit("file: "__FILE__", line: %d, " \
 				"Init local full sync binlog context failed.",\
@@ -753,7 +748,7 @@ static enum full_sync_state __full_sync_data_from_master(connect_info *cinfo,syn
 	}
 	while(do_full_sync_data)
 	{
-		if((bstate = binlog_read(sctx,&brecord,&brecord_size)) == B_FILE_OK)
+		if((bstate = binlog_read(sctx,&rbctx,&brecord,&brecord_size)) == B_FILE_OK)
 		{
 			if((fstate = __full_sync_handle(cinfo,sctx,&brecord)) != F_SYNC_OK)
 			{
@@ -906,7 +901,7 @@ static enum full_sync_state __sync_binlog_from_master(connect_info *cinfo,full_s
 			long2buff(0,p);
 			p += LFS_STRUCT_PROP_LEN_SIZE8;
 		}
-		BINLOG_FILENAME(fmark->b_curr_sync_index,b_fn)
+		BINLOG_FILENAME(rbctx.binlog_file_name,fmark->b_curr_sync_index,b_fn)
 		if((ret = senddata_nblock(cinfo->sfd,(void*)req_buff,(p - req_buff),confitems.network_timeout)) != 0)
 		{
 			logger_error("file: "__FILE__", line: %d," \

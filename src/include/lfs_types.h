@@ -35,8 +35,11 @@ typedef struct datasevr_reg_body_req_st{
 	char heart_beat_interval[LFS_STRUCT_PROP_LEN_SIZE8];
 	char reg_time[LFS_STRUCT_PROP_LEN_SIZE8];
 	char started_time[LFS_STRUCT_PROP_LEN_SIZE8];
-	char server_type[LFS_STRUCT_PROP_LEN_SIZE8];
 }datasevr_reg_body_req;
+
+typedef struct datasevr_reg_body_resp_st{
+	char server_type[LFS_STRUCT_PROP_LEN_SIZE4];
+}datasevr_reg_body_resp;
 
 typedef struct datasevr_fullsyncreq_body_req_st{
 	char map_info[LFS_DATASERVER_MAP_INFO_SIZE + 1];

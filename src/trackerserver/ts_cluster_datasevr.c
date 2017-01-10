@@ -15,6 +15,7 @@
 #include "ts_cluster.h"
 #include "ts_cluster_datasevr.h"
 
+#define CHECK_MASTER_FAILED_MAX_COUNT 3
 
 static int __do_insert(datasevr_volume *dv,datasevr_block *dblk); 
 
@@ -49,9 +50,9 @@ datasevr_block* cluster_datasevrmasterblock_get(const char *vn,size_t nvn)
 	vid = hash_func((const void*)vn,nvn);
 	cluster_lock(vid);
 	dv = do_cluster_find(vid);
-	if((dv != NULL) && (dv->write_block_index >= 0))
+	if((dv != NULL) && (dv->master_block_index >= 0))
 	{
-		dblk = dv->blocks[dv->write_block_index];
+		dblk = dv->blocks[dv->master_block_index];
 	}
 	cluster_unlock(vid);
 	return dblk;
@@ -73,14 +74,13 @@ datasevr_block* cluster_readdatasevrblock_get(const char *vn,size_t nvn,int64_t 
 	vid = hash_func((const void*)vn,nvn);
 	cluster_lock(vid);
 	dv = do_cluster_find(vid);
-	cluster_unlock(vid);
 	if((dv != NULL) && (dv->blocks))
 	{
 		int i;
 		for(i = 0; i < dv->block_count; i++)
 		{
 			time_t curr_time = time(NULL);
-			if((i == dv->write_block_index) || \
+			if((i == dv->master_block_index) || \
 					(i == dv->last_read_block_index))
 				continue;
 			if((dv->blocks[i]) && \
@@ -95,9 +95,10 @@ datasevr_block* cluster_readdatasevrblock_get(const char *vn,size_t nvn,int64_t 
 		}
 		if(dblk == NULL)
 		{
-			dblk = dv->blocks[dv->write_block_index];
+			dblk = dv->blocks[dv->master_block_index];
 		}
 	}
+	cluster_unlock(vid);
 	return dblk;
 }
 
@@ -109,6 +110,17 @@ datasevr_block* cluster_datasevrblock_find(const char *vn,size_t nvn,const char 
 	uint32_t bid;
 	vid = hash_func((const void*)vn,nvn);
 	bid = hash_func((const void*)bip,nbip);
+	cluster_lock(vid);
+	dv = do_cluster_find(vid);
+	dblk = do_block_find(dv,bid);
+	cluster_unlock(vid);
+	return dblk;
+}
+
+datasevr_block* cluster_datasevrblock_byid_find(uint32_t vid,uint32_t bid)
+{
+	datasevr_volume *dv = NULL;
+	datasevr_block *dblk = NULL;
 	cluster_lock(vid);
 	dv = do_cluster_find(vid);
 	dblk = do_block_find(dv,bid);
@@ -131,16 +143,18 @@ static int __do_insert(datasevr_volume *dv,datasevr_block *dblk)
 		dv->volume_id = dblk->parent_volume_id;
 		do_cluster_insert(dv);
 	}
-	datasevr_block *db = NULL;
-   	db = do_block_find(dv,dblk->block_id);
-	if(!db)
+	if((dv->block_count == 0) || \
+			(dv->master_block_index == -1))
 	{
-		if((ret = do_block_insert(dv,dblk)) != 0)
-		{
-			logger_error("file: "__FILE__", line: %d, " \
-					"The (id %u,ip %s) datasevr block insert to the %s datasevr volume failed!", __LINE__,dblk->block_id,dblk->ip_addr,dblk->map_info);
-			return ret;
-		}
+		dblk->type = master_server;
+	}
+	if((ret = do_block_insert(dv,dblk)) != 0)
+	{
+		logger_error("file: "__FILE__", line: %d, " \
+				"The (id %u,ip %s) datasevr block insert to the %s datasevr volume failed!", __LINE__,dblk->block_id,dblk->ip_addr,dblk->map_info);
+		return ret;
 	}
 	return LFS_OK;
 }
+
+

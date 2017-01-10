@@ -26,6 +26,7 @@
 #define BINLOG_CACHE_BUFFER_SIZE (16 * 1024)
 #define BINLOG_BUFFER_SIZE 64 * 1024
 #define BINLOG_INDEX_FILE_NAME "binlog.index"
+#define SYNC_BINLOG_INDEX_FILE_NAME "syncbinlog.index"
 
 #define BINLOG_FILE_READ_END_FLAG 1
 #define BINLOG_MAX_FILE_SIZE 1024 * 1024 * 1024
@@ -36,101 +37,130 @@
 	snprintf(fn_buff,MAX_PATH_SIZE,"%s/sync/%s.mark",\
 			base_path,bid);
 
-int binlog_fd = -1;
-int curr_binlog_file_index = 0;
-int64_t binlog_file_size = 0;
-time_t binlog_file_update_timestamp;
-static pthread_mutex_t binlog_thread_lock;
-static char *binlog_wcache_buff = NULL;
-static int binlog_wcache_buff_len = 0;
+binlog_ctx bctx;
+binlog_ctx rbctx;
 
-static int __write_curr_binlog_file_index(int findex);
-static int __binlog_flush();
-static int __binlog_lock_flush();
-static enum binlog_file_state  __binlog_record_read(sync_ctx *sctx,char *record_buff,int *record_length);
-static enum binlog_file_state __binlog_file_read(sync_ctx *sctx);
-static enum binlog_file_state __open_new_binlog_file();
+static pthread_mutex_t binlog_thread_lock;
+static int __write_curr_binlog_file_index(binlog_ctx *bctx,int curr_index);
+static int __binlog_flush(binlog_ctx *bctx);
+static int __binlog_lock_flush(binlog_ctx *bctx);
+static enum binlog_file_state  __binlog_record_read(sync_ctx *sctx,binlog_ctx *bctx,char *record_buff,int *record_length);
+static enum binlog_file_state __binlog_file_read(sync_ctx *sctx,binlog_ctx *bctx);
+static enum binlog_file_state __open_new_binlog_file(binlog_ctx *bctx);
 static int __mark_file_batdata_load(sync_ctx *sctx);
-static int __timestamp_binlog_record_locate(const time_t timestamp,int *bindex,int64_t *boffset);
-static int __open_setting_binlog(sync_ctx *sctx);
-static enum binlog_file_state __binlog_record_parse(sync_ctx *sctx,char *record,binlog_record *brecord);
-static enum binlog_file_state __binlog_record_read_do(sync_ctx *sctx,char *record_buff,int *record_length);
+static int __timestamp_binlog_record_locate(binlog_ctx *bctx,const time_t timestamp,int *bindex,int64_t *boffset);
+static int __open_setting_binlog(sync_ctx *sctx,binlog_ctx *bctx);
+static enum binlog_file_state __binlog_record_parse(sync_ctx *sctx,binlog_ctx *bctx,char *record,binlog_record *brecord);
+static enum binlog_file_state __binlog_record_read_do(sync_ctx *sctx,binlog_ctx *bctx,char *record_buff,int *record_length);
 
 int binlog_init(void)
 {
 	int ret = LFS_OK;
-	char fpath[MAX_PATH_SIZE];
-	char ifname[MAX_PATH_SIZE];
-	char bfname[MAX_PATH_SIZE];
+	if((ret = local_binlog_init(&bctx)) != 0)
+	{
+		logger_error("file: "__FILE__", line: %d," \
+				"Init local binlog context failed.",\
+				__LINE__);
+		return ret;
+	}
+	if((ret = remote_binlog_init(&rbctx)) != 0)
+	{
+		logger_error("file: "__FILE__", line: %d," \
+				"Init remote binlog context failed.",\
+				__LINE__);
+		return ret;
+	}
+	return ret;
+}
+
+void binlog_destroy(void)
+{
+	binlog_ctx_destroy(&bctx);
+	binlog_ctx_destroy(&rbctx);
+}
+
+int local_binlog_init(binlog_ctx *bctx)
+{
+	assert(bctx != NULL);
+	int ret = LFS_OK;
 	int inx_fd;
 	int inx_rbytes;
-	char fbuff[64];
+	char fbuff[64] = {0};
+	char curr_binlog_file_name[MAX_PATH_SIZE] = {0};
 
-	snprintf(fpath,sizeof(fpath),"%s/bin",base_path);
-	if(!isDir(fpath))
+	memset(bctx,0,sizeof(binlog_ctx));
+	snprintf(bctx->binlog_path,sizeof(bctx->binlog_path),"%s/bin",base_path);
+	if(!isDir(bctx->binlog_path))
 	{
-		if(mkdir(fpath,0755) != 0)
+		if(mkdir(bctx->binlog_path,0755) != 0)
 		{
 			logger_error("file: "__FILE__", line: %d," \
 					"Mkdir \"%s\" failed,errno:%d," \
-					"error info:%s!", __LINE__,fpath,errno,strerror(errno));
-			return LFS_ERROR;
+					"error info:%s!", __LINE__,bctx->binlog_path,\
+					errno,strerror(errno));
+			return ret;
 		}
 	}
-	snprintf(ifname,sizeof(ifname),"%s/bin/%s",\
-			base_path,BINLOG_INDEX_FILE_NAME);
-	if((inx_fd = open(ifname,O_RDONLY)) >= 0)
+	snprintf(bctx->binlog_mark_file_name,\
+			sizeof(bctx->binlog_mark_file_name),"%s/%s",\
+			bctx->binlog_path,BINLOG_INDEX_FILE_NAME);
+	if((inx_fd = open(bctx->binlog_mark_file_name,O_RDONLY)) >= 0)
 	{
 		inx_rbytes = read(inx_fd,fbuff,sizeof(fbuff) - 1);
 		close(inx_fd);
 		if(inx_rbytes <= 0)
 		{
 			logger_error("file: "__FILE__", line: %d," \
-					"Read file  \"%s\" failed.", __LINE__,ifname);
+					"Read file  \"%s\" failed.",\
+				   	__LINE__,bctx->binlog_mark_file_name);
 			return LFS_ERROR;
 		}
 		fbuff[inx_rbytes] = '\0';
-		curr_binlog_file_index = atoi(fbuff);
-		if(curr_binlog_file_index < 0)
+		bctx->curr_binlog_file_index = atoi(fbuff);
+		if(bctx->curr_binlog_file_index < 0)
 		{
 			logger_error("file: "__FILE__", line: %d," \
-					"In file  \"%s\",binlog file index %d is invalid.", __LINE__,ifname,curr_binlog_file_index);
+					"In file  \"%s\",binlog file index %d is invalid.", __LINE__,bctx->binlog_mark_file_name,bctx->curr_binlog_file_index);
 			return LFS_ERROR;
 		}
 	}
 	else
 	{
-		curr_binlog_file_index = 0;
-		if((ret = __write_curr_binlog_file_index(curr_binlog_file_index)) != 0)
+		bctx->curr_binlog_file_index = 0;
+		if((ret = __write_curr_binlog_file_index(bctx,bctx->curr_binlog_file_index)) != 0)
 		{
 			return ret;
 		}
 
 	}
-	binlog_wcache_buff = (char*)malloc(BINLOG_CACHE_BUFFER_SIZE);
-	if(binlog_wcache_buff == NULL)
+	bctx->binlog_wcache_buff = (char*)malloc(BINLOG_CACHE_BUFFER_SIZE);
+	if(bctx->binlog_wcache_buff == NULL)
 	{
 		logger_error("file: "__FILE__", line: %d," \
 				"Allocate binlog write cache buffer memory failed,errno:%d,error info:%s.",\
 			   	__LINE__,errno,strerror(errno));
 		return LFS_ERROR;
 	}
-	snprintf(bfname,sizeof(bfname),"%s/bin/%s.%03d",\
-			base_path,BINLOG_FILE_NAME,curr_binlog_file_index);
-	if((binlog_fd = open(bfname,O_WRONLY | O_CREAT | O_APPEND,0644)) < 0)
+	snprintf(bctx->binlog_file_name,sizeof(bctx->binlog_file_name),"%s/%s",\
+			bctx->binlog_path,BINLOG_FILE_NAME);
+	snprintf(curr_binlog_file_name,sizeof(curr_binlog_file_name),"%s.%03d",\
+			bctx->binlog_file_name,bctx->curr_binlog_file_index);
+	if((bctx->binlog_fd = open(curr_binlog_file_name,O_WRONLY | O_CREAT | O_APPEND,0644)) < 0)
 	{
 		logger_error("file: "__FILE__", line: %d, " \
 				"Open \"%s\" failed,errno:%d," \
-				"error info:%s!", __LINE__,bfname,errno,strerror(errno));
+				"error info:%s!",\
+			   	__LINE__,curr_binlog_file_name,errno,strerror(errno));
 		ret = LFS_ERROR;
 		goto err;
 	}
-	binlog_file_size = lseek(binlog_fd,0,SEEK_END);
-	if(binlog_file_size < 0)
+	bctx->binlog_file_size = lseek(bctx->binlog_fd,0,SEEK_END);
+	if(bctx->binlog_file_size < 0)
 	{
 		logger_error("file: "__FILE__", line: %d," \
 				"lseek file \"%s\" failed,errno:%d," \
-				"error info:%s!", __LINE__,bfname,errno,strerror(errno));
+				"error info:%s!",\
+			   	__LINE__,curr_binlog_file_name,errno,strerror(errno));
 		ret = LFS_ERROR;
 		goto err;
 	}
@@ -144,28 +174,128 @@ int binlog_init(void)
 	}
 	return LFS_OK;
 err:
-	binlog_destroy();
+	binlog_ctx_destroy(bctx);
 	return ret;
 }
 
-int binlog_destroy(void)
+int remote_binlog_init(binlog_ctx *bctx)
 {
-	if(binlog_fd >= 0)
+	assert(bctx != NULL);
+	int ret = LFS_OK;
+	int inx_fd;
+	int inx_rbytes;
+	char fbuff[64] = {0};
+	char curr_binlog_file_name[MAX_PATH_SIZE] = {0};
+
+	memset(bctx,0,sizeof(binlog_ctx));
+	snprintf(bctx->binlog_path,sizeof(bctx->binlog_path),"%s/sync",base_path);
+	if(!isDir(bctx->binlog_path))
 	{
-		__binlog_lock_flush();
-		close(binlog_fd);
-		binlog_fd = -1;
+		if(mkdir(bctx->binlog_path,0755) != 0)
+		{
+			logger_error("file: "__FILE__", line: %d," \
+					"Mkdir \"%s\" failed,errno:%d," \
+					"error info:%s!", __LINE__,bctx->binlog_path,\
+					errno,strerror(errno));
+			return ret;
+		}
 	}
-	if(binlog_wcache_buff != NULL)
+	snprintf(bctx->binlog_mark_file_name,\
+			sizeof(bctx->binlog_mark_file_name),"%s/%s",\
+			bctx->binlog_path,SYNC_BINLOG_INDEX_FILE_NAME);
+	if((inx_fd = open(bctx->binlog_mark_file_name,O_RDONLY)) >= 0)
 	{
-		free(binlog_wcache_buff);
-		binlog_wcache_buff = NULL;
-		pthread_mutex_destroy(&binlog_thread_lock);
+		inx_rbytes = read(inx_fd,fbuff,sizeof(fbuff) - 1);
+		close(inx_fd);
+		if(inx_rbytes <= 0)
+		{
+			logger_error("file: "__FILE__", line: %d," \
+					"Read file  \"%s\" failed.",\
+				   	__LINE__,bctx->binlog_mark_file_name);
+			return LFS_ERROR;
+		}
+		fbuff[inx_rbytes] = '\0';
+		bctx->curr_binlog_file_index = atoi(fbuff);
+		if(bctx->curr_binlog_file_index < 0)
+		{
+			logger_error("file: "__FILE__", line: %d," \
+					"In file  \"%s\",binlog file index %d is invalid.", __LINE__,bctx->binlog_mark_file_name,bctx->curr_binlog_file_index);
+			return LFS_ERROR;
+		}
+	}
+	else
+	{
+		bctx->curr_binlog_file_index = 0;
+		if((ret = __write_curr_binlog_file_index(bctx,bctx->curr_binlog_file_index)) != 0)
+		{
+			return ret;
+		}
+
+	}
+	bctx->binlog_wcache_buff = (char*)malloc(BINLOG_CACHE_BUFFER_SIZE);
+	if(bctx->binlog_wcache_buff == NULL)
+	{
+		logger_error("file: "__FILE__", line: %d," \
+				"Allocate binlog write cache buffer memory failed,errno:%d,error info:%s.",\
+			   	__LINE__,errno,strerror(errno));
+		return LFS_ERROR;
+	}
+	snprintf(bctx->binlog_file_name,sizeof(bctx->binlog_file_name),"%s/%s",\
+			bctx->binlog_path,BINLOG_FILE_NAME);
+	snprintf(curr_binlog_file_name,sizeof(curr_binlog_file_name),"%s.%03d",\
+			bctx->binlog_file_name,bctx->curr_binlog_file_index);
+	if((bctx->binlog_fd = open(curr_binlog_file_name,O_WRONLY | O_CREAT | O_APPEND,0644)) < 0)
+	{
+		logger_error("file: "__FILE__", line: %d, " \
+				"Open \"%s\" failed,errno:%d," \
+				"error info:%s!",\
+			   	__LINE__,curr_binlog_file_name,errno,strerror(errno));
+		ret = LFS_ERROR;
+		goto err;
+	}
+	bctx->binlog_file_size = lseek(bctx->binlog_fd,0,SEEK_END);
+	if(bctx->binlog_file_size < 0)
+	{
+		logger_error("file: "__FILE__", line: %d," \
+				"lseek file \"%s\" failed,errno:%d," \
+				"error info:%s!",\
+			   	__LINE__,curr_binlog_file_name,errno,strerror(errno));
+		ret = LFS_ERROR;
+		goto err;
+	}
+	if((ret = pthread_mutex_init(&binlog_thread_lock,NULL)) != 0)
+	{
+		logger_error("file: "__FILE__", line: %d," \
+				"Init binlog thread lock failed,errno:%d," \
+				"error info:%s!", __LINE__,ret,strerror(ret));
+		ret = LFS_ERROR;
+		goto err;
 	}
 	return LFS_OK;
+err:
+	binlog_ctx_destroy(bctx);
+	return ret;
 }
 
-int binlog_write(const char *line)
+void binlog_ctx_destroy(binlog_ctx *bctx)
+{
+	assert(bctx != NULL);
+	if(bctx->binlog_fd >= 0)
+	{
+		__binlog_lock_flush(bctx);
+		close(bctx->binlog_fd);
+		bctx->binlog_fd = -1;
+	}
+	if(bctx->binlog_wcache_buff != NULL)
+	{
+		free(bctx->binlog_wcache_buff);
+		bctx->binlog_wcache_buff = NULL;
+		pthread_mutex_destroy(&binlog_thread_lock);
+	}
+	return;
+}
+
+int binlog_write(binlog_ctx *bctx,const char *line)
 {
 	int ret = LFS_OK;
 	if((ret = pthread_mutex_lock(&binlog_thread_lock)) != 0)
@@ -175,15 +305,15 @@ int binlog_write(const char *line)
 				"error info:%s!", __LINE__,ret,strerror(ret));
 	}
 
-	binlog_wcache_buff_len += sprintf(binlog_wcache_buff + \
-			binlog_wcache_buff_len,"%s",line);
+	bctx->binlog_wcache_buff_len += sprintf(bctx->binlog_wcache_buff + \
+			bctx->binlog_wcache_buff_len,"%s",line);
 
-	if(BINLOG_CACHE_BUFFER_SIZE - binlog_wcache_buff_len < 256)
+	if(BINLOG_CACHE_BUFFER_SIZE - bctx->binlog_wcache_buff_len < 256)
 	{
-		ret = __binlog_flush();
+		ret = __binlog_flush(bctx);
 	}
 #ifdef _DEBUG_
-		ret = __binlog_flush();
+		ret = __binlog_flush(bctx);
 #endif
 	if((ret = pthread_mutex_unlock(&binlog_thread_lock)) != 0)
 	{
@@ -194,54 +324,10 @@ int binlog_write(const char *line)
 	return ret;
 }
 
-int curr_binlog_file_index_set(int bindex)
-{
-	int ret;
-	if((ret = pthread_mutex_lock(&binlog_thread_lock)) != 0)
-	{
-		logger_error("file: "__FILE__", line: %d, " \
-				"Call binlog lock failed,errno:%d," \
-				"error info:%s!", __LINE__,ret,strerror(ret));
-		return ret;
-	}
-	curr_binlog_file_index = bindex;
-	if((ret = pthread_mutex_unlock(&binlog_thread_lock)) != 0)
-	{
-		logger_error("file: "__FILE__", line: %d, " \
-				"Call binlog unlock failed,errno:%d," \
-				"error info:%s!", __LINE__,ret,strerror(ret));
-		return ret;
-	}
-	return LFS_OK;
-}
-
-int curr_binlog_file_mete_get(binlog_file_mete *bfmete)
-{
-	assert(bfmete != NULL);
-	int ret;
-	if((ret = pthread_mutex_lock(&binlog_thread_lock)) != 0)
-	{
-		logger_error("file: "__FILE__", line: %d, " \
-				"Call binlog lock failed,errno:%d," \
-				"error info:%s!", __LINE__,ret,strerror(ret));
-		return ret;
-	}
-	bfmete->cindex = curr_binlog_file_index;
-	bfmete->coffset = binlog_file_size;
-	bfmete->cupdtimestamp = binlog_file_update_timestamp;
-	if((ret = pthread_mutex_unlock(&binlog_thread_lock)) != 0)
-	{
-		logger_error("file: "__FILE__", line: %d, " \
-				"Call binlog unlock failed,errno:%d," \
-				"error info:%s!", __LINE__,ret,strerror(ret));
-		return ret;
-	}
-	return LFS_OK;
-}
-
-enum binlog_file_state binlog_read(sync_ctx *sctx,binlog_record *brecord,int *brecord_size)
+enum binlog_file_state binlog_read(sync_ctx *sctx,binlog_ctx *bctx,binlog_record *brecord,int *brecord_size)
 {
 	assert(sctx != NULL);
+	assert(bctx != NULL);
 	assert(brecord != NULL);
 	int ret;
 	char record[BINLOG_RECORD_SIZE] = {0};
@@ -251,7 +337,7 @@ enum binlog_file_state binlog_read(sync_ctx *sctx,binlog_record *brecord,int *br
 	memset(brecord,0,sizeof(binlog_record));
 	while(1)
 	{
-		bfs = __binlog_record_read(sctx,record,brecord_size);
+		bfs = __binlog_record_read(sctx,bctx,record,brecord_size);
 		if(bfs == B_FILE_OK)
 		{
 			break;
@@ -260,11 +346,11 @@ enum binlog_file_state binlog_read(sync_ctx *sctx,binlog_record *brecord,int *br
 		{
 			return bfs;
 		}
-		if(sctx->b_index > curr_binlog_file_index)
+		if(sctx->b_index > bctx->curr_binlog_file_index)
 		{
 			return B_FILE_ERROR;
 		}
-		BINLOG_FILENAME(sctx->b_index,b_fn)
+		BINLOG_FILENAME(bctx->binlog_file_name,sctx->b_index,b_fn)
 		if(sctx->b_buff.length != 0)
 		{
 			logger_error("file: "__FILE__", line: %d, " \
@@ -276,7 +362,7 @@ enum binlog_file_state binlog_read(sync_ctx *sctx,binlog_record *brecord,int *br
 		sctx->b_index++;
 		sctx->b_offset = 0;
 		sctx->b_buff.flag = 0;
-		if((ret = __open_new_binlog_file()) != 0)
+		if((ret = __open_new_binlog_file(bctx)) != 0)
 		{
 			return ret;
 		}
@@ -285,17 +371,18 @@ enum binlog_file_state binlog_read(sync_ctx *sctx,binlog_record *brecord,int *br
 			return B_FILE_ERROR;
 		}
 	}
-	if((ret = __binlog_record_parse(sctx,record,brecord)))
+	if((ret = __binlog_record_parse(sctx,bctx,record,brecord)))
 	{
 		return ret;
 	}
 	return B_FILE_OK;
 }
 
-int asyncctx_init(block_brief *bbrief,sync_ctx *sctx)
+int asyncctx_init(block_brief *bbrief,sync_ctx *sctx,binlog_ctx *bctx)
 {
 	assert(bbrief != NULL);
 	assert(sctx != NULL);
+	assert(bctx != NULL);
 	int ret;
 	char m_fn[MAX_PATH_SIZE] = {0};
 
@@ -327,8 +414,8 @@ int asyncctx_init(block_brief *bbrief,sync_ctx *sctx)
 	}
 	else
 	{
-		sctx->b_index = curr_binlog_file_index;
-		if((ret = __timestamp_binlog_record_locate((const time_t)bbrief->last_synctimestamp,\
+		sctx->b_index = bctx->curr_binlog_file_index;
+		if((ret = __timestamp_binlog_record_locate(bctx,(const time_t)bbrief->last_synctimestamp,\
 						&sctx->b_index,&sctx->b_offset)) != 0)
 		{
 			return ret;
@@ -338,16 +425,17 @@ int asyncctx_init(block_brief *bbrief,sync_ctx *sctx)
 			return ret;
 		}
 	}
-	if((ret = __open_setting_binlog(sctx)) != 0)
+	if((ret = __open_setting_binlog(sctx,bctx)) != 0)
 	{
 		return ret;
 	}
 	return LFS_OK;
 }
 
-int fullsyncctx_init(sync_ctx *sctx,connect_info *cinfo)
+int fullsyncctx_init(sync_ctx *sctx,binlog_ctx *bctx,connect_info *cinfo)
 {
 	assert(sctx != NULL);
+	assert(bctx != NULL);
 	assert(cinfo != NULL);
 	int ret;
 	char m_fn[MAX_PATH_SIZE] = {0};
@@ -378,7 +466,7 @@ int fullsyncctx_init(sync_ctx *sctx,connect_info *cinfo)
 			return ret;
 		}
 	}
-	if((ret = __open_setting_binlog(sctx)) != 0)
+	if((ret = __open_setting_binlog(sctx,bctx)) != 0)
 	{
 		return ret;
 	}
@@ -446,7 +534,7 @@ int binlogsyncctx_destroy(sync_ctx *sctx)
 	return LFS_OK;
 }
 
-static int __binlog_lock_flush()
+static int __binlog_lock_flush(binlog_ctx *bctx)
 {
 	int ret;
 	if((ret = pthread_mutex_lock(&binlog_thread_lock)) != 0)
@@ -455,7 +543,7 @@ static int __binlog_lock_flush()
 				"Call binlog lock failed,errno:%d," \
 				"error info:%s!", __LINE__,ret,strerror(ret));
 	}
-	__binlog_flush();
+	__binlog_flush(bctx);
 	if((ret = pthread_mutex_unlock(&binlog_thread_lock)) != 0)
 	{
 		logger_error("file: "__FILE__", line: %d, " \
@@ -465,95 +553,91 @@ static int __binlog_lock_flush()
 	return LFS_OK;
 }
 
-static int __binlog_flush()
+static int __binlog_flush(binlog_ctx *bctx)
 {
 	int ret = LFS_OK;
 
-	if(binlog_wcache_buff_len == 0)
+	if(bctx->binlog_wcache_buff_len == 0)
 	{
 		return LFS_OK;
 	}
-	else if(write(binlog_fd,binlog_wcache_buff,\
-				binlog_wcache_buff_len) != \
-			binlog_wcache_buff_len)
+	else if(write(bctx->binlog_fd,bctx->binlog_wcache_buff,\
+				bctx->binlog_wcache_buff_len) != \
+			bctx->binlog_wcache_buff_len)
 	{
 		logger_error("file: "__FILE__", line: %d, " \
-				"Write binlog to file  \"%s/%s.%03d\" failed,errno:%d," \
+				"Write binlog to file  \"%s.%03d\" failed,errno:%d," \
 				"error info:%s!",\
 			   	__LINE__,\
-				base_path,\
-				BINLOG_FILE_NAME,\
-				curr_binlog_file_index,\
+				bctx->binlog_file_name,\
+				bctx->curr_binlog_file_index,\
 				errno,\
 				strerror(errno));
 		return LFS_ERROR;
 	}
-	else if(fsync(binlog_fd) != 0)
+	else if(fsync(bctx->binlog_fd) != 0)
 	{
 		logger_error("file: "__FILE__", line: %d, " \
-				"Sync binlog to file  \"%s/%s.%03d\" failed,errno:%d," \
+				"Sync binlog to file  \"%s.%03d\" failed,errno:%d," \
 				"error info:%s!",\
 			   	__LINE__,\
-				base_path,\
-				BINLOG_FILE_NAME,\
-				curr_binlog_file_index,\
+				bctx->binlog_file_name,\
+				bctx->curr_binlog_file_index,\
 				errno,\
 				strerror(errno));
 		return LFS_ERROR;
 	}
 	else
 	{
-		binlog_file_size += binlog_wcache_buff_len;
-		binlog_file_update_timestamp = time(NULL);
-		if(binlog_file_size >= BINLOG_MAX_FILE_SIZE)
+		bctx->binlog_file_size += bctx->binlog_wcache_buff_len;
+		bctx->binlog_file_update_timestamp = time(NULL);
+		if(bctx->binlog_file_size >= BINLOG_MAX_FILE_SIZE)
 		{
-			if((ret = __write_curr_binlog_file_index(curr_binlog_file_index + 1)) == 0)
+			if((ret = __write_curr_binlog_file_index(bctx,bctx->curr_binlog_file_index + 1)) == 0)
 			{
-				curr_binlog_file_index += 1;
-				ret = __open_new_binlog_file();
+				bctx->curr_binlog_file_index += 1;
+				ret = __open_new_binlog_file(bctx);
 				if(ret != 0)
 				{
 					logger_error("file: "__FILE__", line: %d, " \
-							"Open binlog file  \"%s/%s.%03d\" failed,errno:%d," \
+							"Open binlog file  \"%s.%03d\" failed,errno:%d," \
 							"error info:%s!",\
 							__LINE__,\
-							base_path,\
-							BINLOG_FILE_NAME,\
-							(curr_binlog_file_index + 1),\
+							bctx->binlog_file_name,\
+							bctx->curr_binlog_file_index,\
 							errno,\
 							strerror(errno));
 				}
 			}
-			binlog_file_size = 0;
+			bctx->binlog_file_size = 0;
 		}
-		memset(binlog_wcache_buff,0,BINLOG_CACHE_BUFFER_SIZE);
-		binlog_wcache_buff_len = 0;
+		memset(bctx->binlog_wcache_buff,0,BINLOG_CACHE_BUFFER_SIZE);
+		bctx->binlog_wcache_buff_len = 0;
 	}
 	return ret;
 }
 
-static int __write_curr_binlog_file_index(int findex)
+static int __write_curr_binlog_file_index(binlog_ctx *bctx,int curr_index)
 {
-	char fname[MAX_PATH_SIZE];
 	char buff[32];
 	int fd;
 	int len;
 
-	snprintf(fname,sizeof(fname),"%s/bin/%s",\
-			base_path,BINLOG_INDEX_FILE_NAME);
-	if((fd = open(fname,O_WRONLY|O_CREAT|O_TRUNC,0644)) < 0)
+	if((fd = open(bctx->binlog_mark_file_name,O_WRONLY|O_CREAT|O_TRUNC,0644)) < 0)
 	{
 		logger_error("file: "__FILE__", line: %d, " \
 				"Open \"%s\" failed,errno:%d," \
-				"error info:%s!", __LINE__,fname,errno,strerror(errno));
+				"error info:%s!", \
+				__LINE__,bctx->binlog_mark_file_name,errno,strerror(errno));
 		return LFS_ERROR;	
 	}
-	len = sprintf(buff,"%d",findex);
+	len = sprintf(buff,"%d",curr_index);
 	if(write(fd,buff,len) != len)
 	{
 		logger_error("file: "__FILE__", line: %d, " \
 				"Write binlog file index %d to file  \"%s\" failed,errno:%d," \
-				"error info:%s!", __LINE__,findex,fname,errno,strerror(errno));
+				"error info:%s!", \
+				__LINE__,curr_index,bctx->binlog_mark_file_name,errno,strerror(errno));
 		close(fd);
 		return LFS_ERROR;	
 	}
@@ -561,29 +645,31 @@ static int __write_curr_binlog_file_index(int findex)
 	return LFS_OK;
 }
 
-static enum binlog_file_state __open_new_binlog_file()
+static enum binlog_file_state __open_new_binlog_file(binlog_ctx *bctx)
 {
-	char fname[MAX_PATH_SIZE];
+	char curr_binlog_file_name[MAX_PATH_SIZE];
 
-	if(binlog_fd >= 0)
+	if(bctx->binlog_fd >= 0)
 	{
-		close(binlog_fd);
-		binlog_fd = -1;
+		close(bctx->binlog_fd);
+		bctx->binlog_fd = -1;
 	}
-	snprintf(fname,sizeof(fname),"%s/bin/%s.%03d",\
-			base_path,BINLOG_FILE_NAME,curr_binlog_file_index);
-	if(fileExists(fname))
+	snprintf(curr_binlog_file_name,\
+			sizeof(curr_binlog_file_name),"%s.%03d",\
+			bctx->binlog_file_name,bctx->curr_binlog_file_index);
+	if(fileExists(curr_binlog_file_name))
 	{
 		logger_warning("file: "__FILE__", line: %d, " \
 				"Binlog file \"%s\" is exists and truncate!",\
-			   	__LINE__,fname);
+			   	__LINE__,curr_binlog_file_name);
 	}
-	binlog_fd = open(fname,O_WRONLY|O_CREAT|O_APPEND,0644);
-	if(binlog_fd < 0)
+	bctx->binlog_fd = open(curr_binlog_file_name,O_WRONLY|O_CREAT|O_APPEND,0644);
+	if(bctx->binlog_fd < 0)
 	{
 		logger_error("file: "__FILE__", line: %d, " \
 				"Open \"%s\" failed,errno:%d," \
-				"error info:%s!", __LINE__,fname,errno,strerror(errno));
+				"error info:%s!", \
+				__LINE__,curr_binlog_file_name,errno,strerror(errno));
 		return B_FILE_ERROR;
 	}
 	return B_FILE_OK;
@@ -632,7 +718,7 @@ static int __mark_file_batdata_load(sync_ctx *sctx)
 	return LFS_OK;
 }
 
-static int __timestamp_binlog_record_locate(const time_t timestamp,int *bindex,int64_t *boffset)
+static int __timestamp_binlog_record_locate(binlog_ctx *bctx,const time_t timestamp,int *bindex,int64_t *boffset)
 {
 	char b_fn[BINLOG_FILE_NAME_SIZE];
 	FILE *fp;
@@ -645,7 +731,7 @@ static int __timestamp_binlog_record_locate(const time_t timestamp,int *bindex,i
 	int64_t offset = 0;
 
 
-	BINLOG_FILENAME(cindex,b_fn)
+	BINLOG_FILENAME(bctx->binlog_file_name,cindex,b_fn)
 	if((fp = fopen(b_fn,"r")) == NULL)	
 	{
 		logger_error("file: "__FILE__", line: %d," \
@@ -696,12 +782,12 @@ err:
 	return LFS_OK;
 }
 
-static int __open_setting_binlog(sync_ctx *sctx)
+static int __open_setting_binlog(sync_ctx *sctx,binlog_ctx *bctx)
 {
 	assert(sctx != NULL);
 	char b_fn[BINLOG_FILE_NAME_SIZE] = {0};
 
-	BINLOG_FILENAME(sctx->b_index,b_fn)
+	BINLOG_FILENAME(bctx->binlog_file_name,sctx->b_index,b_fn)
 	if(sctx->b_fd >= 0)
 	{
 		close(sctx->b_fd);
@@ -737,14 +823,14 @@ static int __open_setting_binlog(sync_ctx *sctx)
 	return LFS_OK;
 }
 
-static enum binlog_file_state __binlog_record_parse(sync_ctx *sctx,char *record,binlog_record *brecord)
+static enum binlog_file_state __binlog_record_parse(sync_ctx *sctx,binlog_ctx *bctx,char *record,binlog_record *brecord)
 {
 	assert(record != NULL);
 	int ret;
 	char b_fn[BINLOG_FILE_NAME_SIZE];
 	char *cols[BINLOG_RECORD_COLUMN];
 
-	BINLOG_FILENAME(sctx->b_index,b_fn)
+	BINLOG_FILENAME(bctx->binlog_file_name,sctx->b_index,b_fn)
 	if((ret = splitStr(record,' ',cols,BINLOG_RECORD_COLUMN)) < BINLOG_RECORD_COLUMN)
 	{
 		logger_error("file: "__FILE__", line: %d, " \
@@ -789,9 +875,8 @@ static enum binlog_file_state __binlog_record_parse(sync_ctx *sctx,char *record,
 	return B_FILE_OK;
 }
 
-static enum binlog_file_state __binlog_file_read(sync_ctx *sctx)
+static enum binlog_file_state __binlog_file_read(sync_ctx *sctx,binlog_ctx *bctx)
 {
-	assert(sctx != NULL);
 	int rbytes;
 	char b_fn[BINLOG_FILE_NAME_SIZE];
 
@@ -808,7 +893,7 @@ static enum binlog_file_state __binlog_file_read(sync_ctx *sctx)
 		}
 		sctx->b_buff.cbuff = sctx->b_buff.buff;
 	}	
-	BINLOG_FILENAME(sctx->b_index,b_fn)
+	BINLOG_FILENAME(bctx->binlog_file_name,sctx->b_index,b_fn)
 	rbytes = read(sctx->b_fd,sctx->b_buff.buff + sctx->b_buff.length,BINLOG_BUFFER_SIZE - sctx->b_buff.length);
 	if(rbytes < 0)
 	{
@@ -824,7 +909,7 @@ static enum binlog_file_state __binlog_file_read(sync_ctx *sctx)
 	}
 	else if(rbytes == 0)
 	{
-		if(sctx->b_index == curr_binlog_file_index)
+		if(sctx->b_index == bctx->curr_binlog_file_index)
 		{
 			return B_FILE_NODATA;
 		}
@@ -835,28 +920,29 @@ static enum binlog_file_state __binlog_file_read(sync_ctx *sctx)
 	return B_FILE_OK;
 }
 
-static enum binlog_file_state  __binlog_record_read(sync_ctx *sctx,char *record_buff,int *record_length)
+static enum binlog_file_state  __binlog_record_read(sync_ctx *sctx,binlog_ctx *bctx,char *record_buff,int *record_length)
 {
 	assert(sctx != NULL);
+	assert(bctx != NULL);
 	enum binlog_file_state b_fs;
-	b_fs = __binlog_record_read_do(sctx,record_buff,record_length);
+	b_fs = __binlog_record_read_do(sctx,bctx,record_buff,record_length);
 	if(b_fs != B_FILE_NODATA)
 	{
 		return b_fs;
 	}
-	if((b_fs = __binlog_file_read(sctx)) != B_FILE_OK)
+	if((b_fs = __binlog_file_read(sctx,bctx)) != B_FILE_OK)
 	{
 		return b_fs;
 	}
-	return __binlog_record_read_do(sctx,record_buff,record_length);
+	return __binlog_record_read_do(sctx,bctx,record_buff,record_length);
 }
 
-static enum binlog_file_state  __binlog_record_read_do(sync_ctx *sctx,char *record_buff,int *record_length)
+static enum binlog_file_state  __binlog_record_read_do(sync_ctx *sctx,binlog_ctx *bctx,char *record_buff,int *record_length)
 {
 	char *ple = NULL;
 	char b_fn[BINLOG_FILE_NAME_SIZE] = {0};
 
-	BINLOG_FILENAME(sctx->b_index,b_fn)
+	BINLOG_FILENAME(bctx->binlog_file_name,sctx->b_index,b_fn)
 	if(sctx->b_buff.length == 0)
 	{
 		*record_length = 0;

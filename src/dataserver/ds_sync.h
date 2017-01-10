@@ -26,6 +26,8 @@ int async_thread_start(block_brief *bbrief);
 int async_thread_exit(pthread_t *tid,block_brief *brief);
 
 extern volatile int do_run_async_thread;
+extern binlog_ctx bctx;
+extern binlog_ctx rbctx;
 #ifdef __cplusplus
 }
 #endif

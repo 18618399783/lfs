@@ -28,6 +28,7 @@
 #include "ds_conn.h"
 #include "ds_file.h"
 #include "ds_binlog.h"
+#include "ds_sync.h"
 #include "ds_block.h"
 #include "ds_disk_io.h"
 #include "ds_service.h"
@@ -116,7 +117,7 @@ void file_upload_done_callback(conn *c,const int err_no)
 					c->fctx->f_timestamp,\
 					FILE_OP_TYPE_CREATE_FILE,\
 					c->fctx->f_id);
-			if(binlog_write(binlog_buff) != 0)
+			if(binlog_write(&bctx,binlog_buff) != 0)
 			{
 				logger_error("file: "__FILE__", line: %d, " \
 						"Write binlog  to file id:%s,block map name %s failed!",\
@@ -165,7 +166,7 @@ void asyncfile_done_callback(conn *c,const int err_no)
 				c->fctx->f_timestamp,\
 				FILE_OP_TYPE_CREATE_FILE,\
 				c->fctx->f_id);
-		if(binlog_write(binlog_buff) != 0)
+		if(binlog_write(&rbctx,binlog_buff) != 0)
 		{
 			logger_error("file: "__FILE__", line: %d, " \
 					"Write binlog  to file id:%s,block map name %s failed!",\
@@ -346,7 +347,6 @@ protocol_resp_status handle_cmd_asynccopyfile(conn *c)
 protocol_resp_status handle_cmd_getmasterbinlogmete(conn *c)
 {
 	protocol_resp_status status = PROTOCOL_RESP_STATUS_SUCCESS;
-	binlog_file_mete bfmete;
 	char *p;
 	protocol_header *procl_header;
 
@@ -358,10 +358,9 @@ protocol_resp_status handle_cmd_getmasterbinlogmete(conn *c)
 	c->wbytes = sizeof(protocol_header);
 
 	p = c->wbuff + sizeof(protocol_header);
-	curr_binlog_file_mete_get(&bfmete);
-	int2buff((const int)(bfmete.cindex + 1),p);
-	long2buff(bfmete.coffset,p + LFS_STRUCT_PROP_LEN_SIZE4);
-	long2buff((int64_t)bfmete.cupdtimestamp,p + LFS_STRUCT_PROP_LEN_SIZE4 + \
+	int2buff((const int)(bctx.curr_binlog_file_index + 1),p);
+	long2buff(bctx.binlog_file_size,p + LFS_STRUCT_PROP_LEN_SIZE4);
+	long2buff((int64_t)bctx.binlog_file_update_timestamp,p + LFS_STRUCT_PROP_LEN_SIZE4 + \
 			LFS_STRUCT_PROP_LEN_SIZE8);
 	c->wbytes += LFS_STRUCT_PROP_LEN_SIZE4 + \
 				LFS_STRUCT_PROP_LEN_SIZE8 *2;
@@ -384,7 +383,7 @@ protocol_resp_status handle_cmd_copymasterbinlog(conn *c)
 	bindex = buff2int((const char*)p);	
 	bfile_size = buff2long((const char*)p + LFS_STRUCT_PROP_LEN_SIZE4);
 
-	BINLOG_FILENAME(bindex,b_fn)
+	BINLOG_FILENAME(bctx.binlog_file_name,bindex,b_fn)
 	c->fctx = file_ctx_new(c->sfd,DEFAULT_FILE_BUFF_SIZE,FILE_OP_TYPE_READ);
 	if(c->fctx == NULL)
 	{

@@ -14,18 +14,13 @@
 #include "ts_wlc.h"
 
 
-enum server_type{
-	master = 0,
-	slave
-};
-
 typedef struct datasevr_block_st{
 	uint32_t parent_volume_id;
 	uint32_t block_id;
 	enum datasevr_state state;
 	char map_info[LFS_DATASERVER_MAP_INFO_SIZE];
 	char ip_addr[IP_ADDRESS_SIZE];
-	enum server_type type;
+	enum datasevr_type type;
 	int port;
 	int curr_conns;
 	int weight;
@@ -45,8 +40,9 @@ typedef struct datasevr_volume_st{
 	int block_count;
 	int slave_block_count;
 	int allocs_size;
-	int write_block_index;
+	int master_block_index;
 	int last_read_block_index;
+	int check_master_failed_count;
 	datasevr_block **blocks;
 }datasevr_volume;
 
