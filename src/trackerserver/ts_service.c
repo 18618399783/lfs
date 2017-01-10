@@ -58,22 +58,26 @@ protocol_resp_status handle_cmd_register(conn *c)
 					"New datasevr_block struct failed!", __LINE__);
 			return status = PROTOCOL_RESP_STATUS_ERROR_MEMORY;
 		}
+		dblk->state = init;
+		memcpy(dblk->ip_addr,req->ds_ipaddr,IP_ADDRESS_SIZE);
+		memcpy(dblk->map_info,req->map_info,strlen(req->map_info));
+		dblk->port = (int)buff2long(req->ds_port);
+		dblk->weight = (int)buff2long(req->weight);
+		dblk->heart_beat_interval = (int)buff2long(req->heart_beat_interval);
+		dblk->reg_time = (time_t)buff2long(req->reg_time);
+		dblk->started_time = (time_t)buff2long(req->started_time);
+		dblk->block_id = bid;
+		dblk->parent_volume_id = vid;
+		if((ret = cluster_datasevrblock_insert(dblk)) != 0)
+		{
+			block_free(dblk);	
+			return status = PROTOCOL_RESP_STATUS_ERROR;
+		}
 	}
 	dblk->state = init;
-	memcpy(dblk->ip_addr,req->ds_ipaddr,IP_ADDRESS_SIZE);
-	memcpy(dblk->map_info,req->map_info,strlen(req->map_info));
-	dblk->port = (int)buff2long(req->ds_port);
 	dblk->weight = (int)buff2long(req->weight);
 	dblk->heart_beat_interval = (int)buff2long(req->heart_beat_interval);
-	dblk->reg_time = (time_t)buff2long(req->reg_time);
-	dblk->started_time = (time_t)buff2long(req->started_time);
-	dblk->block_id = bid;
-	dblk->parent_volume_id = vid;
-	if((ret = cluster_datasevrblock_insert(dblk)) != 0)
-	{
-		block_free(dblk);	
-		return status = PROTOCOL_RESP_STATUS_ERROR;
-	}
+
 	protocol_header *procl_header;
 	procl_header = (protocol_header*)c->wbuff;
 	procl_header->header_s.body_len = 0x00;
@@ -180,6 +184,7 @@ protocol_resp_status handle_cmd_heartbeat(conn *c)
 			{
 				continue;
 			}
+			current_time = time(NULL);
 			if((current_time - dblk->last_heartbeat_time) > \
 					confitems.heart_beat_interval)
 			{

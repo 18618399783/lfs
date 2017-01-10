@@ -240,7 +240,7 @@ int remote_binlog_init(binlog_ctx *bctx)
 			   	__LINE__,errno,strerror(errno));
 		return LFS_ERROR;
 	}
-	snprintf(bctx->binlog_file_name,sizeof(bctx->binlog_file_name),"%s/%s",\
+	snprintf(bctx->binlog_file_name,sizeof(bctx->binlog_file_name),"%s/sync%s",\
 			bctx->binlog_path,BINLOG_FILE_NAME);
 	snprintf(curr_binlog_file_name,sizeof(curr_binlog_file_name),"%s.%03d",\
 			bctx->binlog_file_name,bctx->curr_binlog_file_index);

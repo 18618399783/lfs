@@ -915,7 +915,7 @@ static int __volume_blocks_manager(block_brief_info_resp *bbirs,const int bbirs_
 					if((ret = async_thread_start(pf)) != 0)
 					{
 						logger_error("file: "__FILE__", line: %d, " \
-								"Master server(%s:%d) started async thread to slave server(%s:%d) failed!", \
+								"Dataserver(%s:%d) started async thread to server(%s:%d) failed!", \
 								__LINE__,\
 								confitems.bind_addr,\
 								confitems.bind_port,\
@@ -943,7 +943,7 @@ static int __volume_blocks_manager(block_brief_info_resp *bbirs,const int bbirs_
 			if((ret = async_thread_start(pi)) != 0)
 			{
 				logger_error("file: "__FILE__", line: %d, " \
-						"Master server(%s:%d) started async thread to slave server(%s:%d) failed!", \
+						"Dataserver(%s:%d) started async thread to slave server(%s:%d) failed!", \
 						__LINE__,\
 						confitems.bind_addr,\
 						confitems.bind_port,\
