@@ -506,10 +506,11 @@ static int __check_volumeblocks_change(trackerclient_conn *c)
 		return ret;
 	}
 	bcount = resp_bytes / sizeof(block_brief_info_resp);
-   if(bcount > LFS_MAX_BLOCKS_EACH_VOLUME)	
+   if((bcount > LFS_MAX_BLOCKS_EACH_VOLUME) || \
+		   (bcount == 0))	
    {
 		logger_error("file: "__FILE__", line: %d, " \
-				"Server(%s:%d) received %d volume block from tracker server(%s:%d),exceed max %d.", \
+				"Server(%s:%d) received %d volume block from tracker server(%s:%d),exceed max %d or zero.", \
 				__LINE__,\
 				confitems.bind_addr,\
 				confitems.bind_port,\
@@ -885,6 +886,7 @@ static block_brief* __volume_blocks_insert(block_brief_info_resp *bbirs)
 static int __volume_blocks_manager(block_brief_info_resp *bbirs,const int bbirs_count)
 {
 	assert(bbirs != NULL);
+	assert(bbirs_count != 0);
 	int ret;
 	block_brief_info_resp *ites;
 	block_brief_info_resp *itee;
