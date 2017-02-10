@@ -359,11 +359,9 @@ protocol_resp_status handle_cmd_getmasterbinlogmete(conn *c)
 
 	p = c->wbuff + sizeof(protocol_header);
 	int2buff((const int)(bctx.curr_binlog_file_index + 1),p);
-	long2buff(bctx.binlog_file_size,p + LFS_STRUCT_PROP_LEN_SIZE4);
-	long2buff((int64_t)bctx.binlog_file_update_timestamp,p + LFS_STRUCT_PROP_LEN_SIZE4 + \
-			LFS_STRUCT_PROP_LEN_SIZE8);
-	c->wbytes += LFS_STRUCT_PROP_LEN_SIZE4 + \
-				LFS_STRUCT_PROP_LEN_SIZE8 *2;
+	int2buff((const int)(rbctx.curr_binlog_file_index + 1),\
+			p + LFS_STRUCT_PROP_LEN_SIZE4);
+	c->wbytes += LFS_STRUCT_PROP_LEN_SIZE4 * 2;
 	set_conn_state(c,conn_write);
 	return status;
 }
@@ -376,14 +374,33 @@ protocol_resp_status handle_cmd_copymasterbinlog(conn *c)
 	char b_fn[BINLOG_FILE_NAME_SIZE] = {0};
 	struct stat stat_buff;
 	int bindex;
-	int64_t bfile_size;
+	enum full_sync_binlog_type btype;
+	int64_t bfile_size = 0;
+	int64_t boffset = 0;
 	protocol_header *req_header;
 
 	p = c->rcurr;
 	bindex = buff2int((const char*)p);	
-	bfile_size = buff2long((const char*)p + LFS_STRUCT_PROP_LEN_SIZE4);
+	btype = (enum full_sync_binlog_type)buff2int((const char*)p + LFS_STRUCT_PROP_LEN_SIZE4);
+	boffset = buff2long((const char*)p + LFS_STRUCT_PROP_LEN_SIZE4 + \
+			LFS_STRUCT_PROP_LEN_SIZE4);
 
-	BINLOG_FILENAME(bctx.binlog_file_name,bindex,b_fn)
+	if(btype == LOCAL_BINLOG)
+	{
+		BINLOG_FILENAME(bctx.binlog_file_name,bindex,b_fn)
+	}
+	else if(btype == REMOTE_BINLOG)
+	{
+		BINLOG_FILENAME(rbctx.binlog_file_name,bindex,b_fn)
+	}
+	else
+	{
+		logger_warning("file: "__FILE__", line: %d, " \
+				"Sync binlog data without binlog type.",\
+				__LINE__);
+		return PROTOCOL_RESP_STATUS_ERROR_SYNC_NO_BINLOGTYPE;
+	}
+	
 	c->fctx = file_ctx_new(c->sfd,DEFAULT_FILE_BUFF_SIZE,FILE_OP_TYPE_READ);
 	if(c->fctx == NULL)
 	{
@@ -392,33 +409,30 @@ protocol_resp_status handle_cmd_copymasterbinlog(conn *c)
 			   	__LINE__,b_fn);
 		return PROTOCOL_RESP_STATUS_ERROR_MEMORY;
 	}
-	if(bfile_size == 0)
+	if((ret = stat(b_fn,&stat_buff)) != 0)
 	{
-		if((ret = stat(b_fn,&stat_buff)) != 0)
+		if(ret == ENOENT)
 		{
-			if(ret == ENOENT)
-			{
-				logger_warning("file: "__FILE__", line: %d, " \
-						"The binlog file \"%s\" does not exists.",\
-						__LINE__,\
-						b_fn);
-				status = PROTOCOL_RESP_STATUS_ERROR_SYNC_NO_BINLOGFILE;
-				return status;
-			}
-			else
-			{
-				logger_error("file: "__FILE__", line: %d," \
-						"Get file \"%s\" stat failed,errno:%d," \
-						"error info:%s!", __LINE__,b_fn,errno,strerror(errno));
-				status = PROTOCOL_RESP_STATUS_ERROR_SYNC_STAT_BINLOGFILE;
-				return status;
-			}
+			logger_warning("file: "__FILE__", line: %d, " \
+					"The binlog file \"%s\" does not exists.",\
+					__LINE__,\
+					b_fn);
+			status = PROTOCOL_RESP_STATUS_ERROR_SYNC_NO_BINLOGFILE;
+			return status;
 		}
-		bfile_size = stat_buff.st_size;
+		else
+		{
+			logger_error("file: "__FILE__", line: %d," \
+					"Get file \"%s\" stat failed,errno:%d," \
+					"error info:%s!", __LINE__,b_fn,errno,strerror(errno));
+			status = PROTOCOL_RESP_STATUS_ERROR_SYNC_STAT_BINLOGFILE;
+			return status;
+		}
 	}
+	bfile_size = stat_buff.st_size - boffset;
 	strcpy(c->fctx->f_path_name,b_fn);
 	c->fctx->f_size = bfile_size;
-	c->fctx->f_woffset = 0;
+	c->fctx->f_woffset = boffset;
 	req_header = (protocol_header*)c->wbuff;
 	req_header->header_s.body_len = LFS_STRUCT_PROP_LEN_SIZE8;
 	req_header->header_s.cmd = PROTOCOL_CMD_FULL_SYNC_COPY_MASTER_BINLOG; 

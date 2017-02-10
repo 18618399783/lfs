@@ -125,6 +125,7 @@ protocol_resp_status handle_cmd_fullsyncreq(conn *c)
 	resp = (datasevr_masterblock_body_resp*)(c->wbuff + sizeof(protocol_header));
 	memcpy(resp->master_ipaddr,master->ip_addr,strlen(master->ip_addr));
 	long2buff((int64_t)master->port,resp->master_port);
+	long2buff((int64_t)time(NULL),resp->full_sync_opver);
 	c->wbytes += sizeof(datasevr_masterblock_body_resp);
 
 	set_conn_state(c,conn_write);
@@ -191,7 +192,6 @@ protocol_resp_status handle_cmd_heartbeat(conn *c)
 				(*ites)->state = off_line;
 			}
 			resp = (block_brief_info_resp*)p;
-			long2buff((int64_t)((*ites)->type),resp->server_type);
 			long2buff((int64_t)((*ites)->state),resp->state);
 			memcpy(resp->ds_ipaddr,(*ites)->ip_addr,strlen((*ites)->ip_addr));
 			long2buff((int64_t)(*ites)->port,resp->ds_port);

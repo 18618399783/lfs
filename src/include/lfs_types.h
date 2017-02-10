@@ -49,6 +49,7 @@ typedef struct datasevr_fullsyncreq_body_req_st{
 typedef struct datasevr_masterblock_body_resp_st{
 	char master_ipaddr[IP_ADDRESS_SIZE];
 	char master_port[LFS_STRUCT_PROP_LEN_SIZE8];
+	char full_sync_opver[LFS_STRUCT_PROP_LEN_SIZE8];
 }datasevr_masterblock_body_resp;
 
 typedef struct datasevr_heartbeat_body_req_st{
@@ -76,7 +77,6 @@ typedef struct datasevr_quited_body_req_st{
 }datasevr_quited_body_req;
 
 typedef struct block_brief_info_resp_st{
-	char server_type[LFS_STRUCT_PROP_LEN_SIZE8];
 	char state[LFS_STRUCT_PROP_LEN_SIZE8];
 	char ds_ipaddr[IP_ADDRESS_SIZE];
 	char ds_port[LFS_STRUCT_PROP_LEN_SIZE8];

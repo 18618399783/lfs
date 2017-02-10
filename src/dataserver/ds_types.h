@@ -172,7 +172,6 @@ struct file_ctx_st{
 };	
 
 struct block_brief_st{
-	enum datasevr_type type;
 	enum datasevr_state state;
 	int port;
 	time_t last_synctimestamp;
@@ -228,10 +227,17 @@ struct sync_file_req_st{
 };
 typedef struct sync_file_req_st sync_file_req;
 
+enum full_sync_binlog_type{
+	LOCAL_BINLOG = 0,
+	REMOTE_BINLOG
+};
+
 struct full_sync_binlog_mark_st{
 	int b_file_count;
 	int b_curr_sync_index;
-	int64_t b_file_offset;
+	int sb_file_count;
+	int sb_curr_sync_index;
+	int64_t b_offset;
 	time_t last_sync_timestamp;
 };
 typedef struct full_sync_binlog_mark_st full_sync_binlog_mark;

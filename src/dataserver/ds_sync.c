@@ -34,7 +34,7 @@
 #define FULL_SYNC_NETWORK_ERROR 1
 #define WRITE_TO_BAT_FILE_BY_SYNC_COUNT 2 
 #define FULL_SYNC_BINLOG_MARK_FILENAME "local_sync.mark"
-#define FULL_SYNC_BINLOG_MARK_DATAFIELDS 4
+#define FULL_SYNC_BINLOG_MARK_DATAFIELDS 5
 
 static pthread_t *async_tids = NULL;
 int async_threads_count = 0;
@@ -50,7 +50,11 @@ static enum full_sync_state __full_sync_binlog_mark_write(full_sync_binlog_mark 
 static enum full_sync_state __full_sync_binlog_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark);
 static enum full_sync_state __full_sync_data_from_master(connect_info *cinfo,sync_ctx *sctx);
 static enum full_sync_state __binlogmete_from_master_get(connect_info *cinfo,full_sync_binlog_mark *fmark);
-static enum full_sync_state __sync_binlog_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark);
+static enum full_sync_state __sync_local_binlog_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark);
+static enum full_sync_state __sync_remote_binlog_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark);
+static enum full_sync_state __sync_local_binlog_data_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark);
+static enum full_sync_state __sync_remote_binlog_data_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark);
+static enum full_sync_state __full_sync_append_remote_binlog(connect_info *cinfo,full_sync_binlog_mark *fmark,const int64_t bfile_size);
 static enum full_sync_state __full_sync_handle(connect_info *cinfo,sync_ctx *sctx,binlog_record *brecord);
 
 enum full_sync_state full_sync_from_master(connect_info *cinfo)
@@ -647,8 +651,9 @@ static enum full_sync_state __full_sync_binlog_mark_initload(full_sync_binlog_ma
 			}
 			fmark->b_file_count = atoi(trim(fields[0]));
 			fmark->b_curr_sync_index = atoi(trim(fields[1]));
-			fmark->b_file_offset = atol(trim(fields[2]));
-			fmark->last_sync_timestamp = atol(trim(fields[3]));
+			fmark->sb_file_count = atoi(trim(fields[2]));
+			fmark->sb_curr_sync_index = atoi(trim(fields[3]));
+			fmark->last_sync_timestamp = atol(trim(fields[4]));
 		}
 		fclose(fp);
 	}
@@ -677,12 +682,14 @@ static enum full_sync_state __full_sync_binlog_mark_write(full_sync_binlog_mark 
 		return F_SYNC_MARK_ERROR;	
 	}
 	len = sprintf(buff,\
-			"%d%c%d%c%ld%c%ld\n",\
+			"%d%c%d%c%d%c%d%c%ld\n",\
 			fmark->b_file_count,\
 			BAT_DATA_SEPERATOR_SPLITSYMBOL,\
 			fmark->b_curr_sync_index,\
 			BAT_DATA_SEPERATOR_SPLITSYMBOL,\
-			fmark->b_file_offset,\
+			fmark->sb_file_count,\
+			BAT_DATA_SEPERATOR_SPLITSYMBOL,\
+			fmark->sb_curr_sync_index,\
 			BAT_DATA_SEPERATOR_SPLITSYMBOL,\
 			fmark->last_sync_timestamp);
 	if(write(fd,buff,len) != len)
@@ -701,7 +708,6 @@ static enum full_sync_state __full_sync_binlog_from_master(connect_info *cinfo,f
 {
 	assert((cinfo != NULL) && (fmark != NULL));
 	enum full_sync_state fstate;
-	int i;
 
 	fstate = __full_sync_binlog_mark_initload(fmark);
 	if(fstate == F_SYNC_MARK_ERROR)
@@ -712,20 +718,13 @@ static enum full_sync_state __full_sync_binlog_from_master(connect_info *cinfo,f
 	{
 		return fstate;
 	}
-	if(fmark->b_file_count > 1)
+	if((fstate = __sync_remote_binlog_from_master(cinfo,fmark)) != F_SYNC_FINISH)
 	{
-		for(i = fmark->b_curr_sync_index; \
-				i < fmark->b_file_count; i++)
-		{
-			if((fstate = __sync_binlog_from_master(cinfo,fmark)) != F_SYNC_OK)
-			{
-				return fstate;
-			}
-		}
+		return fstate;
 	}
-	else
+	if((fstate = __sync_local_binlog_from_master(cinfo,fmark)) != F_SYNC_FINISH)
 	{
-		return F_SYNC_FINISH;
+		return fstate;
 	}
 	return F_SYNC_OK;
 }
@@ -862,14 +861,127 @@ static enum full_sync_state __binlogmete_from_master_get(connect_info *cinfo,ful
 		return F_SYNC_NETWORK_ERROR;
 	}
 	fmark->b_file_count = buff2int(resp_buff);
-	fmark->b_file_offset = buff2long(resp_buff + LFS_STRUCT_PROP_LEN_SIZE4);
-	fmark->last_sync_timestamp = buff2long(resp_buff +\
-		   	LFS_STRUCT_PROP_LEN_SIZE4 + \
-			LFS_STRUCT_PROP_LEN_SIZE8);
+	fmark->sb_file_count = buff2int(resp_buff + LFS_STRUCT_PROP_LEN_SIZE4);
 	return __full_sync_binlog_mark_write(fmark);
 }
 
-static enum full_sync_state __sync_binlog_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark)
+static enum full_sync_state __sync_local_binlog_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark)
+{
+	int i;
+	enum full_sync_state fstate;
+	if(fmark->b_file_count >= 1)
+	{
+		for(i = fmark->b_curr_sync_index; \
+				i < fmark->b_file_count; i++)
+		{
+			if((fstate = __sync_local_binlog_data_from_master(cinfo,fmark)) != F_SYNC_OK)
+			{
+				return fstate;
+			}
+		}
+	}
+	else
+	{
+		return F_SYNC_FINISH;
+	}
+	return F_SYNC_OK;
+}
+
+static enum full_sync_state __sync_remote_binlog_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark)
+{
+	int i;
+	enum full_sync_state fstate;
+	if(fmark->sb_file_count >= 1)
+	{
+		for(i = fmark->sb_curr_sync_index; \
+				i < fmark->sb_file_count; i++)
+		{
+			if((fstate = __sync_remote_binlog_data_from_master(cinfo,fmark)) != F_SYNC_OK)
+			{
+				return fstate;
+			}
+		}
+	}
+	else
+	{
+		return F_SYNC_FINISH;
+	}
+	return F_SYNC_OK;
+}
+
+static enum full_sync_state __sync_local_binlog_data_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark)
+{
+	int ret;
+	enum full_sync_state fstate;
+	protocol_header *req_header;
+	int64_t body_len;
+	int64_t b_filesize;
+	int64_t resp_buff_len;
+	char req_buff[sizeof(protocol_header) + LFS_STRUCT_PROP_LEN_SIZE4 + LFS_STRUCT_PROP_LEN_SIZE8];
+	char resp_buff[LFS_STRUCT_PROP_LEN_SIZE8] = {0};
+	char b_fn[BINLOG_FILE_NAME_SIZE];
+	char *p;
+
+	memset(req_buff,0,sizeof(req_buff));
+	do
+	{
+		body_len = LFS_STRUCT_PROP_LEN_SIZE4 * 2 + LFS_STRUCT_PROP_LEN_SIZE8;
+		req_header = (protocol_header*)req_buff;
+		req_header->header_s.body_len = body_len;
+		req_header->header_s.cmd = PROTOCOL_CMD_FULL_SYNC_COPY_MASTER_BINLOG; 
+		p = req_buff + sizeof(protocol_header);
+		int2buff(fmark->b_curr_sync_index,p);
+		p += LFS_STRUCT_PROP_LEN_SIZE4;
+		int2buff((int)REMOTE_BINLOG,p);
+		p += LFS_STRUCT_PROP_LEN_SIZE4;
+		long2buff((int64_t)fmark->b_offset,p);
+		p += LFS_STRUCT_PROP_LEN_SIZE8;
+		BINLOG_FILENAME(rbctx.binlog_file_name,fmark->b_curr_sync_index,b_fn)
+		if((ret = senddata_nblock(cinfo->sfd,(void*)req_buff,(p - req_buff),confitems.network_timeout)) != 0)
+		{
+			logger_error("file: "__FILE__", line: %d," \
+					"Send sync local binlog file %s request to master server(%s:%d) failed,errno:%d," \
+					"error info:%s!",\
+				   	__LINE__,\
+					b_fn,\
+					cinfo->ipaddr,\
+					cinfo->port,\
+					errno,strerror(errno));
+			return F_SYNC_NETWORK_ERROR;
+		}
+		if((ret = client_recvheader(cinfo->sfd,&resp_buff_len)) != 0)
+		{
+			logger_error("file: "__FILE__", line: %d," \
+					"Receive sync local binlog file %s response header packages from master server(%s:%d) failed.",\
+				   	__LINE__,\
+					b_fn,\
+					cinfo->ipaddr,\
+					cinfo->port);
+			return F_SYNC_NETWORK_ERROR;
+		}
+		if((ret = client_recvdata_nomalloc(cinfo->sfd,resp_buff,resp_buff_len)) != 0)
+		{
+			logger_error("file: "__FILE__", line: %d," \
+					"Receive sync local binlog file %s response packages from master server(%s:%d) failed.",\
+				   	__LINE__,\
+					b_fn,\
+					cinfo->ipaddr,\
+					cinfo->port);
+			return F_SYNC_NETWORK_ERROR;
+		}
+		b_filesize = buff2long(resp_buff);
+		if((fstate = __full_sync_append_remote_binlog(cinfo,fmark,(const int64_t)b_filesize)) != F_SYNC_OK)
+		{
+			__full_sync_binlog_mark_write(fmark);
+			return fstate;
+		}
+	}while(0);
+	fmark->b_curr_sync_index++;
+	fmark->b_offset = 0;
+	return __full_sync_binlog_mark_write(fmark);
+}
+
+static enum full_sync_state __sync_remote_binlog_data_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark)
 {
 	int ret;
 	protocol_header *req_header;
@@ -884,28 +996,22 @@ static enum full_sync_state __sync_binlog_from_master(connect_info *cinfo,full_s
 	memset(req_buff,0,sizeof(req_buff));
 	do
 	{
-		body_len = LFS_STRUCT_PROP_LEN_SIZE4  + LFS_STRUCT_PROP_LEN_SIZE8;
+		body_len = LFS_STRUCT_PROP_LEN_SIZE4 * 2 + LFS_STRUCT_PROP_LEN_SIZE8;
 		req_header = (protocol_header*)req_buff;
 		req_header->header_s.body_len = body_len;
 		req_header->header_s.cmd = PROTOCOL_CMD_FULL_SYNC_COPY_MASTER_BINLOG; 
 		p = req_buff + sizeof(protocol_header);
-		int2buff(fmark->b_curr_sync_index,p);
+		int2buff(fmark->sb_curr_sync_index,p);
 		p += LFS_STRUCT_PROP_LEN_SIZE4;
-		if(fmark->b_file_count - 1 == fmark->b_curr_sync_index)
-		{
-			long2buff(fmark->b_file_offset,p);
-			p += LFS_STRUCT_PROP_LEN_SIZE8;
-		}
-		else
-		{
-			long2buff(0,p);
-			p += LFS_STRUCT_PROP_LEN_SIZE8;
-		}
-		BINLOG_FILENAME(rbctx.binlog_file_name,fmark->b_curr_sync_index,b_fn)
+		int2buff((int)REMOTE_BINLOG,p);
+		p += LFS_STRUCT_PROP_LEN_SIZE4;
+		long2buff((int64_t)0,p);
+		p += LFS_STRUCT_PROP_LEN_SIZE8;
+		BINLOG_FILENAME(rbctx.binlog_file_name,fmark->sb_curr_sync_index,b_fn)
 		if((ret = senddata_nblock(cinfo->sfd,(void*)req_buff,(p - req_buff),confitems.network_timeout)) != 0)
 		{
 			logger_error("file: "__FILE__", line: %d," \
-					"Send sync binlog file %s request to master server(%s:%d) failed,errno:%d," \
+					"Send sync remote binlog file %s request to master server(%s:%d) failed,errno:%d," \
 					"error info:%s!",\
 				   	__LINE__,\
 					b_fn,\
@@ -917,7 +1023,7 @@ static enum full_sync_state __sync_binlog_from_master(connect_info *cinfo,full_s
 		if((ret = client_recvheader(cinfo->sfd,&resp_buff_len)) != 0)
 		{
 			logger_error("file: "__FILE__", line: %d," \
-					"Receive sync binlog file %s response header packages from master server(%s:%d) failed.",\
+					"Receive sync remote binlog file %s response header packages from master server(%s:%d) failed.",\
 				   	__LINE__,\
 					b_fn,\
 					cinfo->ipaddr,\
@@ -927,7 +1033,7 @@ static enum full_sync_state __sync_binlog_from_master(connect_info *cinfo,full_s
 		if((ret = client_recvdata_nomalloc(cinfo->sfd,resp_buff,resp_buff_len)) != 0)
 		{
 			logger_error("file: "__FILE__", line: %d," \
-					"Receive sync binlog file %s response packages from master server(%s:%d) failed.",\
+					"Receive sync remote binlog file %s response packages from master server(%s:%d) failed.",\
 				   	__LINE__,\
 					b_fn,\
 					cinfo->ipaddr,\
@@ -939,7 +1045,7 @@ static enum full_sync_state __sync_binlog_from_master(connect_info *cinfo,full_s
 				0,(const int64_t)b_filesize,confitems.network_timeout)) != 0)
 		{
 			logger_error("file: "__FILE__", line: %d," \
-					"Reveive %s binlog data from  master server(%s:%d) failed,errno:%d," \
+					"Reveive %s remote binlog data from  master server(%s:%d) failed,errno:%d," \
 					"error info:%s!",\
 				   	__LINE__,\
 					b_fn,\
@@ -949,8 +1055,58 @@ static enum full_sync_state __sync_binlog_from_master(connect_info *cinfo,full_s
 			return F_SYNC_NETWORK_ERROR;
 		}
 	}while(0);
-	fmark->b_curr_sync_index++;
+	fmark->sb_curr_sync_index++;
 	return __full_sync_binlog_mark_write(fmark);
+}
+
+static enum full_sync_state __full_sync_append_remote_binlog(connect_info *cinfo,full_sync_binlog_mark *fmark,const int64_t bfile_size)
+{
+	enum full_sync_state rstate = F_SYNC_OK;
+	int ret;
+	int64_t remain_bytes;
+	int recv_bytes;
+	int in_bytes;
+
+	in_bytes = 0;
+	remain_bytes = bfile_size;
+	binlog_ctx_lock();
+	binlog_flush(&rbctx);
+	while(remain_bytes > 0)
+	{
+		if(remain_bytes > BINLOG_CACHE_BUFFER_SIZE)
+		{
+			recv_bytes = BINLOG_CACHE_BUFFER_SIZE;
+		}
+		else
+		{
+			recv_bytes = remain_bytes;
+		}
+		if((ret = recvdata_nblock(cinfo->sfd,(void*)rbctx.binlog_wcache_buff,recv_bytes,confitems.network_timeout,&in_bytes)) != 0)
+		{
+			logger_error("file: "__FILE__", line: %d, " \
+					"Receive master server(%s:%d) local binlog failed,"\
+					" errno:%d,error info: %s.",\
+				   	__LINE__,cinfo->ipaddr,cinfo->port,errno,strerror(errno));
+			break;
+			rstate = F_SYNC_NETWORK_ERROR;
+		}
+		if(binlog_flush(&rbctx) != 0)
+		{
+			logger_error("file: "__FILE__", line: %d, " \
+					"Flush master server(%s:%d) local binlog to local failed,"\
+					" errno:%d,error info: %s.",\
+				   	__LINE__,cinfo->ipaddr,cinfo->port,errno,strerror(errno));
+			break;
+			rstate = F_SYNC_ERROR;
+		}
+		else
+		{
+			fmark->b_offset += in_bytes;
+		}
+		remain_bytes -= in_bytes;
+	}
+	binlog_ctx_unlock();
+	return rstate;
 }
 
 static enum full_sync_state __full_sync_handle(connect_info *cinfo,sync_ctx *sctx,binlog_record *brecord)

@@ -54,9 +54,9 @@ static int __tracker_report_blockstate(trackerclient_conn *c);
 static int __tracker_fullsync_req(trackerclient_conn *c,char *master_ipaddr,int *master_port);
 static int __tracker_quit(trackerclient_conn *c);
 
-static block_brief* __volume_blocks_get(const char *ipaddr);
-static block_brief* __volume_blocks_insert(block_brief_info_resp *bbirs);
-static int __volume_blocks_manager(block_brief_info_resp *bbirs,const int bbirs_count);
+static block_brief* __local_volume_blocks_find(const char *ipaddr);
+static block_brief* __local_volume_blocks_add(block_brief_info_resp *bbirs);
+static int __local_volume_blocks_manager(block_brief_info_resp *bbirs,const int bbirs_count);
 
 
 int tracker_report_thread_start(void)
@@ -506,8 +506,7 @@ static int __check_volumeblocks_change(trackerclient_conn *c)
 		return ret;
 	}
 	bcount = resp_bytes / sizeof(block_brief_info_resp);
-   if((bcount > LFS_MAX_BLOCKS_EACH_VOLUME) || \
-		   (bcount == 0))	
+   if(bcount > LFS_MAX_BLOCKS_EACH_VOLUME)	
    {
 		logger_error("file: "__FILE__", line: %d, " \
 				"Server(%s:%d) received %d volume block from tracker server(%s:%d),exceed max %d or zero.", \
@@ -520,7 +519,7 @@ static int __check_volumeblocks_change(trackerclient_conn *c)
 				LFS_MAX_BLOCKS_EACH_VOLUME);
 		return LFS_ERROR;
    }
-   ret = __volume_blocks_manager((block_brief_info_resp*)resp_buff,bcount);
+   ret = __local_volume_blocks_manager((block_brief_info_resp*)resp_buff,bcount);
 	return ret; 
 }
 
@@ -853,7 +852,7 @@ static int __tracker_quit(trackerclient_conn *c)
 	return ret;
 }
 
-static block_brief* __volume_blocks_get(const char *ipaddr)
+static block_brief* __local_volume_blocks_find(const char *ipaddr)
 {
 	int i;
 	for(i = 0; i < blocks_count; i++)
@@ -866,7 +865,7 @@ static block_brief* __volume_blocks_get(const char *ipaddr)
 	return NULL;
 }
 
-static block_brief* __volume_blocks_insert(block_brief_info_resp *bbirs)
+static block_brief* __local_volume_blocks_add(block_brief_info_resp *bbirs)
 {
 	assert(bbirs != NULL);
 	int block_index;
@@ -875,7 +874,6 @@ static block_brief* __volume_blocks_insert(block_brief_info_resp *bbirs)
 	block_index = blocks_count;
 	blocks_count++;
 	pthread_mutex_unlock(&tracker_reporter_thread_lock);
-	volume_blocks[block_index].type = (int)buff2long(bbirs->server_type);
 	volume_blocks[block_index].state = (int)buff2long(bbirs->state);
 	volume_blocks[block_index].port = (int)buff2long(bbirs->ds_port);
 	volume_blocks[block_index].last_synctimestamp = (time_t)buff2long(bbirs->last_synctimestamp);
@@ -883,7 +881,7 @@ static block_brief* __volume_blocks_insert(block_brief_info_resp *bbirs)
 	return &volume_blocks[block_index];
 }
 
-static int __volume_blocks_manager(block_brief_info_resp *bbirs,const int bbirs_count)
+static int __local_volume_blocks_manager(block_brief_info_resp *bbirs,const int bbirs_count)
 {
 	assert(bbirs != NULL);
 	assert(bbirs_count != 0);
@@ -898,11 +896,10 @@ static int __volume_blocks_manager(block_brief_info_resp *bbirs,const int bbirs_
 	itee = bbirs + bbirs_count;
 	for(; ites < itee; ites++)
 	{
-		pf = __volume_blocks_get((const char*)ites->ds_ipaddr);
+		pf = __local_volume_blocks_find((const char*)ites->ds_ipaddr);
 		if(pf != NULL)
 		{
 			new_state = (int)buff2long(ites->state);
-			pf->type = (int)buff2long(ites->server_type);
 			pf->last_synctimestamp = (time_t)buff2long(ites->last_synctimestamp);
 			if(pf->state != new_state)
 			{
@@ -930,7 +927,7 @@ static int __volume_blocks_manager(block_brief_info_resp *bbirs,const int bbirs_
 		}
 		else
 		{
-			pi = __volume_blocks_insert(ites);
+			pi = __local_volume_blocks_add(ites);
 			if(pi == NULL)
 			{
 				logger_error("file: "__FILE__", line: %d, " \

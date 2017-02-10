@@ -31,7 +31,7 @@ extern "C"{
 #define LFS_FILE_BLOCK_MAP_NAME_SIZE 256
 #define LFS_FILE_ID_SEPERATOR '/'
 #define LFS_WRITE_BUFF_SIZE 256 * 1024
-#define LFS_MAX_BLOCKS_EACH_VOLUME 5
+#define LFS_MAX_BLOCKS_EACH_VOLUME 3
 
 #define LFS_SPLIT_FILE_MAP_NAME(file_map_name)\
 	char f_map_name_buff[LFS_FILE_MAP_NAME_SIZE] = {0};\

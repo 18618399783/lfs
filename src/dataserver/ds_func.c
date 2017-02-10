@@ -64,7 +64,6 @@ void ctxs_init(void)
 	ctxs.started_time = time(NULL);
 	ctxs.register_timestamp = 0;
 	ctxs.sync_timestamp = 0;
-	ctxs.server_type = slave_server;
 	ctxs.is_fullsyncdone = false;
 	ctxs.last_mount_block_index = 0;
 	ctxs.block_opt_count = 0;

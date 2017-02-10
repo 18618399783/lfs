@@ -33,6 +33,8 @@ int trackerclient_info_init();
 int tracker_report_thread_start(void);
 
 extern struct tracker_group_st tracker_groups;
+extern block_brief volume_blocks[LFS_MAX_BLOCKS_EACH_VOLUME];
+extern int blocks_count;
 #ifdef __cplusplus
 }
 #endif

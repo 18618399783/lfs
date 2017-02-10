@@ -23,8 +23,6 @@
 #include "ds_binlog.h"
 
 
-#define BINLOG_CACHE_BUFFER_SIZE (16 * 1024)
-#define BINLOG_BUFFER_SIZE 64 * 1024
 #define BINLOG_INDEX_FILE_NAME "binlog.index"
 #define SYNC_BINLOG_INDEX_FILE_NAME "syncbinlog.index"
 
@@ -42,7 +40,7 @@ binlog_ctx rbctx;
 
 static pthread_mutex_t binlog_thread_lock;
 static int __write_curr_binlog_file_index(binlog_ctx *bctx,int curr_index);
-static int __binlog_flush(binlog_ctx *bctx);
+static inline int __binlog_flush(binlog_ctx *bctx);
 static int __binlog_lock_flush(binlog_ctx *bctx);
 static enum binlog_file_state  __binlog_record_read(sync_ctx *sctx,binlog_ctx *bctx,char *record_buff,int *record_length);
 static enum binlog_file_state __binlog_file_read(sync_ctx *sctx,binlog_ctx *bctx);
@@ -56,6 +54,13 @@ static enum binlog_file_state __binlog_record_read_do(sync_ctx *sctx,binlog_ctx 
 int binlog_init(void)
 {
 	int ret = LFS_OK;
+	if((ret = pthread_mutex_init(&binlog_thread_lock,NULL)) != 0)
+	{
+		logger_error("file: "__FILE__", line: %d," \
+				"Init binlog thread lock failed,errno:%d," \
+				"error info:%s!", __LINE__,ret,strerror(ret));
+		return LFS_ERROR;
+	}
 	if((ret = local_binlog_init(&bctx)) != 0)
 	{
 		logger_error("file: "__FILE__", line: %d," \
@@ -77,6 +82,31 @@ void binlog_destroy(void)
 {
 	binlog_ctx_destroy(&bctx);
 	binlog_ctx_destroy(&rbctx);
+}
+
+int binlog_ctx_lock(void)
+{
+	int ret;
+	if((ret = pthread_mutex_lock(&binlog_thread_lock)) != 0)
+	{
+		logger_error("file: "__FILE__", line: %d, " \
+				"Call binlog lock failed,errno:%d," \
+				"error info:%s!", __LINE__,ret,strerror(ret));
+		return ret;
+	}
+	return LFS_OK;
+}
+
+void binlog_ctx_unlock(void)
+{
+	int ret;
+	if((ret = pthread_mutex_unlock(&binlog_thread_lock)) != 0)
+	{
+		logger_error("file: "__FILE__", line: %d, " \
+				"Call binlog unlock failed,errno:%d," \
+				"error info:%s!", __LINE__,ret,strerror(ret));
+	}
+	return;
 }
 
 int local_binlog_init(binlog_ctx *bctx)
@@ -161,14 +191,6 @@ int local_binlog_init(binlog_ctx *bctx)
 				"lseek file \"%s\" failed,errno:%d," \
 				"error info:%s!",\
 			   	__LINE__,curr_binlog_file_name,errno,strerror(errno));
-		ret = LFS_ERROR;
-		goto err;
-	}
-	if((ret = pthread_mutex_init(&binlog_thread_lock,NULL)) != 0)
-	{
-		logger_error("file: "__FILE__", line: %d," \
-				"Init binlog thread lock failed,errno:%d," \
-				"error info:%s!", __LINE__,ret,strerror(ret));
 		ret = LFS_ERROR;
 		goto err;
 	}
@@ -263,14 +285,6 @@ int remote_binlog_init(binlog_ctx *bctx)
 		ret = LFS_ERROR;
 		goto err;
 	}
-	if((ret = pthread_mutex_init(&binlog_thread_lock,NULL)) != 0)
-	{
-		logger_error("file: "__FILE__", line: %d," \
-				"Init binlog thread lock failed,errno:%d," \
-				"error info:%s!", __LINE__,ret,strerror(ret));
-		ret = LFS_ERROR;
-		goto err;
-	}
 	return LFS_OK;
 err:
 	binlog_ctx_destroy(bctx);
@@ -312,9 +326,6 @@ int binlog_write(binlog_ctx *bctx,const char *line)
 	{
 		ret = __binlog_flush(bctx);
 	}
-#ifdef _DEBUG_
-		ret = __binlog_flush(bctx);
-#endif
 	if((ret = pthread_mutex_unlock(&binlog_thread_lock)) != 0)
 	{
 		logger_error("file: "__FILE__", line: %d, " \
@@ -322,6 +333,12 @@ int binlog_write(binlog_ctx *bctx,const char *line)
 				"error info:%s!", __LINE__,ret,strerror(ret));
 	}
 	return ret;
+}
+
+int binlog_flush(binlog_ctx *bctx)
+{
+	assert(bctx != NULL);
+	return __binlog_flush(bctx);
 }
 
 enum binlog_file_state binlog_read(sync_ctx *sctx,binlog_ctx *bctx,binlog_record *brecord,int *brecord_size)
@@ -553,7 +570,7 @@ static int __binlog_lock_flush(binlog_ctx *bctx)
 	return LFS_OK;
 }
 
-static int __binlog_flush(binlog_ctx *bctx)
+static inline int __binlog_flush(binlog_ctx *bctx)
 {
 	int ret = LFS_OK;
 

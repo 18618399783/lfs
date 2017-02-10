@@ -64,7 +64,6 @@ struct ctx_st{
 	time_t started_time;
 	time_t register_timestamp;
 	time_t sync_timestamp;
-	enum datasevr_type server_type;
 	bool is_fullsyncdone;
 	int last_mount_block_index;
 	int block_opt_count;
