@@ -132,7 +132,7 @@ enum full_sync_state full_sync_from_master(connect_info *cinfo)
 			CTXS_UNLOCK();
 			continue;
 		}
-		if(fmark.b_file_count > 1)
+		if((fmark.b_file_count + fmark.rb_file_count) > 0)
 		{
 			fstate = __full_sync_data_from_master(cinfo,&sctx);
 			if(fstate == F_SYNC_ERROR)
@@ -151,7 +151,6 @@ enum full_sync_state full_sync_from_master(connect_info *cinfo)
 		}
 		else
 		{
-			rbctx.curr_binlog_file_index = fmark.b_file_count;
 			fstate = F_SYNC_FINISH;
 			break;
 		}
@@ -573,7 +572,7 @@ static int __async_copy_file(int sfd,sync_ctx *sctx,block_brief *bbrief,binlog_r
 		req_header->header_s.body_len = body_len;
 		req_header->header_s.cmd = PROTOCOL_CMD_ASYNC_COPY_FILE; 
 		p = req_buff + sizeof(protocol_header);
-		long2buff(brecord->timestamp,p);
+		long2buff(brecord->sequence,p);
 		p += LFS_STRUCT_PROP_LEN_SIZE8;
 		long2buff(brecord->f_id_length,p);
 		p += LFS_STRUCT_PROP_LEN_SIZE8; 
@@ -650,8 +649,8 @@ static enum full_sync_state __full_sync_binlog_mark_initload(full_sync_binlog_ma
 			}
 			fmark->b_file_count = atoi(trim(fields[0]));
 			fmark->b_curr_sync_index = atoi(trim(fields[1]));
-			fmark->sb_file_count = atoi(trim(fields[2]));
-			fmark->sb_curr_sync_index = atoi(trim(fields[3]));
+			fmark->rb_file_count = atoi(trim(fields[2]));
+			fmark->rb_curr_sync_index = atoi(trim(fields[3]));
 			fmark->last_sync_timestamp = atol(trim(fields[4]));
 		}
 		fclose(fp);
@@ -686,9 +685,9 @@ static enum full_sync_state __full_sync_binlog_mark_write(full_sync_binlog_mark 
 			BAT_DATA_SEPERATOR_SPLITSYMBOL,\
 			fmark->b_curr_sync_index,\
 			BAT_DATA_SEPERATOR_SPLITSYMBOL,\
-			fmark->sb_file_count,\
+			fmark->rb_file_count,\
 			BAT_DATA_SEPERATOR_SPLITSYMBOL,\
-			fmark->sb_curr_sync_index,\
+			fmark->rb_curr_sync_index,\
 			BAT_DATA_SEPERATOR_SPLITSYMBOL,\
 			fmark->last_sync_timestamp);
 	if(write(fd,buff,len) != len)
@@ -770,7 +769,10 @@ static enum full_sync_state __full_sync_data_from_master(connect_info *cinfo,syn
 		sctx->b_offset += brecord_size;
 		sctx->sync_count++;
 		sctx->last_timestamp = time(NULL);
-		ctxs.sync_timestamp = time(NULL);
+		if(brecord.sequence > ctxs.last_sync_sequence)
+		{
+			ctxs.last_sync_sequence = brecord.sequence;
+		}
 		if((sctx->sync_count - sctx->last_sync_count) >= \
 				WRITE_TO_BAT_FILE_BY_SYNC_COUNT)
 		{
@@ -856,7 +858,7 @@ static enum full_sync_state __binlogmete_from_master_get(connect_info *cinfo,ful
 		return F_SYNC_NETWORK_ERROR;
 	}
 	fmark->b_file_count = buff2int(resp_buff);
-	fmark->sb_file_count = buff2int(resp_buff + LFS_STRUCT_PROP_LEN_SIZE4);
+	fmark->rb_file_count = buff2int(resp_buff + LFS_STRUCT_PROP_LEN_SIZE4);
 	return __full_sync_binlog_mark_write(fmark);
 }
 
@@ -875,10 +877,10 @@ static enum full_sync_state __sync_binlog_from_master(connect_info *cinfo,full_s
 			}
 		}
 	}
-	if(fmark->sb_file_count >= 1)
+	if(fmark->rb_file_count >= 1)
 	{
-		for(i = fmark->sb_curr_sync_index; \
-				i < fmark->sb_file_count; i++)
+		for(i = fmark->rb_curr_sync_index; \
+				i < fmark->rb_file_count; i++)
 		{
 			if((fstate = __sync_remote_binlog_data_from_master(cinfo,fmark)) != F_SYNC_OK)
 			{
@@ -981,13 +983,13 @@ static enum full_sync_state __sync_remote_binlog_data_from_master(connect_info *
 		req_header->header_s.body_len = body_len;
 		req_header->header_s.cmd = PROTOCOL_CMD_FULL_SYNC_COPY_MASTER_BINLOG; 
 		p = req_buff + sizeof(protocol_header);
-		int2buff(fmark->sb_curr_sync_index,p);
+		int2buff(fmark->rb_curr_sync_index,p);
 		p += LFS_STRUCT_PROP_LEN_SIZE4;
 		int2buff((int)REMOTE_BINLOG,p);
 		p += LFS_STRUCT_PROP_LEN_SIZE4;
 		long2buff((int64_t)0,p);
 		p += LFS_STRUCT_PROP_LEN_SIZE8;
-		BINLOG_FILENAME(rbctx.binlog_file_name,fmark->sb_curr_sync_index,b_fn)
+		BINLOG_FILENAME(rbctx.binlog_file_name,fmark->rb_curr_sync_index,b_fn)
 		if((ret = senddata_nblock(cinfo->sfd,(void*)req_buff,(p - req_buff),confitems.network_timeout)) != 0)
 		{
 			logger_error("file: "__FILE__", line: %d," \
@@ -1035,7 +1037,7 @@ static enum full_sync_state __sync_remote_binlog_data_from_master(connect_info *
 			return F_SYNC_NETWORK_ERROR;
 		}
 	}while(0);
-	fmark->sb_curr_sync_index++;
+	fmark->rb_curr_sync_index++;
 	return __full_sync_binlog_mark_write(fmark);
 }
 

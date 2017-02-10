@@ -864,7 +864,7 @@ static enum binlog_file_state __binlog_record_parse(sync_ctx *sctx,binlog_ctx *b
 				strerror(errno));
 		return B_FILE_ERROR;
 	}
-	brecord->timestamp = (time_t)atoi(cols[0]);
+	brecord->sequence = atol(cols[0]);
 	brecord->op_type = *(cols[1]);
 	brecord->f_id_length = strlen(cols[2]) - 1; 
 	if(brecord->f_id_length > sizeof(brecord->f_id) - 1)

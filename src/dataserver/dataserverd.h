@@ -63,7 +63,7 @@ struct ctx_st{
 	uint64_t rejected_conns;
 	time_t started_time;
 	time_t register_timestamp;
-	time_t sync_timestamp;
+	int64_t last_sync_sequence;
 	bool is_fullsyncdone;
 	int last_mount_block_index;
 	int block_opt_count;

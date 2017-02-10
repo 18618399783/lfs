@@ -631,7 +631,7 @@ static int __tracker_report_syncinfo(trackerclient_conn *c)
 
 	sprintf(req_body->map_info,"%s/%s",confitems.group_name,confitems.volume_name);
 	strcpy(req_body->ds_ipaddr,confitems.bind_addr);
-	long2buff((int64_t)ctxs.sync_timestamp,req_body->last_synctimestamp);
+	long2buff(ctxs.last_sync_sequence,req_body->last_synctimestamp);
 
 	if((ret = client_senddata(c->sfd,req_buff,sizeof(req_buff))) != 0)
 	{

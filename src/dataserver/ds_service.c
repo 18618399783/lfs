@@ -184,7 +184,10 @@ void asyncfile_done_callback(conn *c,const int err_no)
 		resp_header->header_s.state = (uint8_t)PROTOCOL_RESP_STATUS_SUCCESS;
 		c->wbytes = sizeof(protocol_header);
 
-		ctxs.sync_timestamp = time(NULL);
+		if(c->fctx->f_timestamp > ctxs.last_sync_sequence)
+		{
+			ctxs.last_sync_sequence = c->fctx->f_timestamp;
+		}
 		dio_notify_nio(c,conn_write,EV_WRITE|EV_PERSIST);
 		return;
 	}

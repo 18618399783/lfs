@@ -63,7 +63,7 @@ void ctxs_init(void)
 	ctxs.reserved_fds = 0;
 	ctxs.started_time = time(NULL);
 	ctxs.register_timestamp = 0;
-	ctxs.sync_timestamp = 0;
+	ctxs.last_sync_sequence = 0;
 	ctxs.is_fullsyncdone = false;
 	ctxs.last_mount_block_index = 0;
 	ctxs.block_opt_count = 0;
@@ -280,7 +280,7 @@ int ctx_snapshot_batdata_load(void)
 		}
 		ctxs.register_timestamp = (time_t)atol(trim(fields[0]));
 		ctxs.is_fullsyncdone = (bool)atoi(trim(fields[1]));
-		ctxs.sync_timestamp = (time_t)atol(trim(fields[2]));
+		ctxs.last_sync_sequence = (int64_t)atol(trim(fields[2]));
 	}
 	fclose(fp);
 
@@ -309,7 +309,7 @@ int ctx_snapshot_batdata_flush()
 			BAT_DATA_SEPERATOR_SPLITSYMBOL,\
 			ctxs.is_fullsyncdone,\
 			BAT_DATA_SEPERATOR_SPLITSYMBOL,\
-			(long int)ctxs.sync_timestamp);
+			(int64_t)ctxs.last_sync_sequence);
 	if(write(fd,buff,len) != len)
 	{
 		logger_error("file: "__FILE__", line: %d, " \

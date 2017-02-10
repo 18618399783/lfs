@@ -216,7 +216,7 @@ struct binlog_record_st{
 	char f_block_map_name[LFS_FILE_BLOCK_MAP_NAME_SIZE];
 	char f_id[LFS_FILE_ID_SIZE];
 	int f_id_length;
-	time_t timestamp;
+	int64_t sequence;
 	int mnt_block_index;
 };
 typedef struct binlog_record_st binlog_record;
@@ -235,8 +235,8 @@ enum full_sync_binlog_type{
 struct full_sync_binlog_mark_st{
 	int b_file_count;
 	int b_curr_sync_index;
-	int sb_file_count;
-	int sb_curr_sync_index;
+	int rb_file_count;
+	int rb_curr_sync_index;
 	int64_t b_offset;
 	time_t last_sync_timestamp;
 };
