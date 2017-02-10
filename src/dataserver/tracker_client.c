@@ -876,7 +876,7 @@ static block_brief* __local_volume_blocks_add(block_brief_info_resp *bbirs)
 	pthread_mutex_unlock(&tracker_reporter_thread_lock);
 	volume_blocks[block_index].state = (int)buff2long(bbirs->state);
 	volume_blocks[block_index].port = (int)buff2long(bbirs->ds_port);
-	volume_blocks[block_index].last_synctimestamp = (time_t)buff2long(bbirs->last_synctimestamp);
+	volume_blocks[block_index].last_sync_sequence = buff2long(bbirs->last_synctimestamp);
 	memcpy(volume_blocks[block_index].ipaddr,bbirs->ds_ipaddr,strlen(bbirs->ds_ipaddr));
 	return &volume_blocks[block_index];
 }
@@ -900,7 +900,7 @@ static int __local_volume_blocks_manager(block_brief_info_resp *bbirs,const int 
 		if(pf != NULL)
 		{
 			new_state = (int)buff2long(ites->state);
-			pf->last_synctimestamp = (time_t)buff2long(ites->last_synctimestamp);
+			pf->last_sync_sequence = buff2long(ites->last_synctimestamp);
 			if(pf->state != new_state)
 			{
 				if(((pf->state == init) || \

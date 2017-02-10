@@ -46,7 +46,7 @@ static enum binlog_file_state  __binlog_record_read(sync_ctx *sctx,binlog_ctx *b
 static enum binlog_file_state __binlog_file_read(sync_ctx *sctx,binlog_ctx *bctx);
 static enum binlog_file_state __open_new_binlog_file(binlog_ctx *bctx);
 static int __mark_file_batdata_load(sync_ctx *sctx);
-static int __timestamp_binlog_record_locate(binlog_ctx *bctx,const time_t timestamp,int *bindex,int64_t *boffset);
+static int __binlog_sync_offset_locate(binlog_ctx *bctx,int64_t last_sync_sequence,int *bindex,int64_t *boffset);
 static int __open_setting_binlog(sync_ctx *sctx,binlog_ctx *bctx);
 static enum binlog_file_state __binlog_record_parse(sync_ctx *sctx,binlog_ctx *bctx,char *record,binlog_record *brecord);
 static enum binlog_file_state __binlog_record_read_do(sync_ctx *sctx,binlog_ctx *bctx,char *record_buff,int *record_length);
@@ -432,7 +432,7 @@ int asyncctx_init(block_brief *bbrief,sync_ctx *sctx,binlog_ctx *bctx)
 	else
 	{
 		sctx->b_index = bctx->curr_binlog_file_index;
-		if((ret = __timestamp_binlog_record_locate(bctx,(const time_t)bbrief->last_synctimestamp,\
+		if((ret = __binlog_sync_offset_locate(bctx,bbrief->last_sync_sequence,\
 						&sctx->b_index,&sctx->b_offset)) != 0)
 		{
 			return ret;
@@ -735,15 +735,14 @@ static int __mark_file_batdata_load(sync_ctx *sctx)
 	return LFS_OK;
 }
 
-static int __timestamp_binlog_record_locate(binlog_ctx *bctx,const time_t timestamp,int *bindex,int64_t *boffset)
+static int __binlog_sync_offset_locate(binlog_ctx *bctx,int64_t last_sync_sequence,int *bindex,int64_t *boffset)
 {
 	char b_fn[BINLOG_FILE_NAME_SIZE];
 	FILE *fp;
 	char sline[BINLOG_RECORD_SIZE] = {0};
 	char *fields[SYNC_BAT_DATAFIELDS];
 	int col_count;
-	time_t stimestamp = timestamp;
-	time_t rtimestamp;
+	int64_t record_sequence;
 	int cindex = *bindex;
 	int64_t offset = 0;
 
@@ -780,8 +779,8 @@ static int __timestamp_binlog_record_locate(binlog_ctx *bctx,const time_t timest
 					strerror(errno));
 			goto err;
 		}
-		rtimestamp = (time_t)atoi(fields[0]);
-		if(rtimestamp > stimestamp)
+		record_sequence = atol(fields[0]);
+		if(last_sync_sequence > record_sequence)
 		{
 			break;
 		}

@@ -173,9 +173,9 @@ struct file_ctx_st{
 
 struct block_brief_st{
 	enum datasevr_state state;
-	int port;
-	time_t last_synctimestamp;
 	char ipaddr[IP_ADDRESS_SIZE];
+	int port;
+	int64_t last_sync_sequence;
 };
 typedef struct block_brief_st block_brief;
 
