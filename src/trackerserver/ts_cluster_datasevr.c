@@ -66,7 +66,7 @@ datasevr_block* cluster_wlc_writedatasevrblock_get()
 	return dblk;
 }
 
-datasevr_block* cluster_readdatasevrblock_get(const char *vn,size_t nvn,int64_t timestamp)
+datasevr_block* cluster_readdatasevrblock_get(const char *vn,size_t nvn,int64_t sequence)
 {
 	datasevr_volume *dv = NULL;
 	datasevr_block *dblk = NULL;
@@ -86,7 +86,7 @@ datasevr_block* cluster_readdatasevrblock_get(const char *vn,size_t nvn,int64_t 
 			if((dv->blocks[i]) && \
 					((curr_time - dv->blocks[i]->last_heartbeat_time) <= \
 					confitems.heart_beat_interval) && \
-					(dv->blocks[i]->last_synctimestamp >= timestamp))
+					(dv->blocks[i]->last_sync_sequence >= sequence))
 			{
 				dblk = dv->blocks[i];
 				dv->last_read_block_index = i;

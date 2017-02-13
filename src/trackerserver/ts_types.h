@@ -29,7 +29,8 @@ typedef struct datasevr_block_st{
 	int64_t free_mb;
 	time_t reg_time;
 	time_t started_time;
-	time_t last_synctimestamp;
+	//time_t last_synctimestamp;
+	int64_t last_sync_sequence;
 	time_t last_heartbeat_time;
 	time_t last_statreporttimestamp;
 }datasevr_block;

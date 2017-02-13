@@ -231,7 +231,7 @@ static void __snapshot_flush()
 									BAT_DATA_SEPERATOR_SPLITSYMBOL,\
 									(long int)blks[j]->started_time,\
 									BAT_DATA_SEPERATOR_SPLITSYMBOL,\
-									(long int)blks[j]->last_synctimestamp);
+									(int64_t)blks[j]->last_sync_sequence);
 							if(write(fd,buff,len) != len)
 							{
 								logger_error("file: "__FILE__", line: %d, " \
@@ -332,7 +332,7 @@ static int __snapshot_data_load(const char *fpath)
 		blk->heart_beat_interval = atoi(trim(fields[7]));
 		blk->reg_time = (time_t)atol(trim(fields[8]));
 		blk->started_time = (time_t)atol(trim(fields[9]));
-		blk->last_synctimestamp = (time_t)atol(trim(fields[10]));
+		blk->last_sync_sequence = atol(trim(fields[10]));
 		blk->state = off_line;
 		if((ret = cluster_datasevrblock_insert(blk)) != 0)	
 		{

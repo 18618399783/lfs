@@ -195,7 +195,7 @@ protocol_resp_status handle_cmd_heartbeat(conn *c)
 			long2buff((int64_t)((*ites)->state),resp->state);
 			memcpy(resp->ds_ipaddr,(*ites)->ip_addr,strlen((*ites)->ip_addr));
 			long2buff((int64_t)(*ites)->port,resp->ds_port);
-			long2buff((int64_t)(*ites)->last_synctimestamp,resp->last_synctimestamp);
+			long2buff((int64_t)(*ites)->last_sync_sequence,resp->last_sync_sequence);
 			body_len += sizeof(block_brief_info_resp);
 			p = p + body_len;
 		}
@@ -232,7 +232,7 @@ protocol_resp_status handle_cmd_syncreport(conn *c)
 		return status;
 	}
 	
-	dblk->last_synctimestamp = (time_t)buff2long(req_body->last_synctimestamp);
+	dblk->last_sync_sequence = (time_t)buff2long(req_body->last_sync_sequence);
 	dblk->last_heartbeat_time = time(NULL);
 	dblk->state = active;
 

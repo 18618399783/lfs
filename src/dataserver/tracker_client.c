@@ -631,7 +631,7 @@ static int __tracker_report_syncinfo(trackerclient_conn *c)
 
 	sprintf(req_body->map_info,"%s/%s",confitems.group_name,confitems.volume_name);
 	strcpy(req_body->ds_ipaddr,confitems.bind_addr);
-	long2buff(ctxs.last_sync_sequence,req_body->last_synctimestamp);
+	long2buff(ctxs.last_sync_sequence,req_body->last_sync_sequence);
 
 	if((ret = client_senddata(c->sfd,req_buff,sizeof(req_buff))) != 0)
 	{
@@ -876,7 +876,7 @@ static block_brief* __local_volume_blocks_add(block_brief_info_resp *bbirs)
 	pthread_mutex_unlock(&tracker_reporter_thread_lock);
 	volume_blocks[block_index].state = (int)buff2long(bbirs->state);
 	volume_blocks[block_index].port = (int)buff2long(bbirs->ds_port);
-	volume_blocks[block_index].last_sync_sequence = buff2long(bbirs->last_synctimestamp);
+	volume_blocks[block_index].last_sync_sequence = buff2long(bbirs->last_sync_sequence);
 	memcpy(volume_blocks[block_index].ipaddr,bbirs->ds_ipaddr,strlen(bbirs->ds_ipaddr));
 	return &volume_blocks[block_index];
 }
@@ -900,7 +900,7 @@ static int __local_volume_blocks_manager(block_brief_info_resp *bbirs,const int 
 		if(pf != NULL)
 		{
 			new_state = (int)buff2long(ites->state);
-			pf->last_sync_sequence = buff2long(ites->last_synctimestamp);
+			pf->last_sync_sequence = buff2long(ites->last_sync_sequence);
 			if(pf->state != new_state)
 			{
 				if(((pf->state == init) || \

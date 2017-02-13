@@ -60,7 +60,7 @@ typedef struct datasevr_heartbeat_body_req_st{
 typedef struct datasevr_syncreport_body_req_st{
 	char map_info[LFS_DATASERVER_MAP_INFO_SIZE + 1];
 	char ds_ipaddr[IP_ADDRESS_SIZE];
-	char last_synctimestamp[LFS_STRUCT_PROP_LEN_SIZE8];
+	char last_sync_sequence[LFS_STRUCT_PROP_LEN_SIZE8];
 }datasevr_syncreport_body_req;
 
 typedef struct datasevr_statreport_body_req_st{
@@ -80,7 +80,7 @@ typedef struct block_brief_info_resp_st{
 	char state[LFS_STRUCT_PROP_LEN_SIZE8];
 	char ds_ipaddr[IP_ADDRESS_SIZE];
 	char ds_port[LFS_STRUCT_PROP_LEN_SIZE8];
-	char last_synctimestamp[LFS_STRUCT_PROP_LEN_SIZE8];
+	char last_sync_sequence[LFS_STRUCT_PROP_LEN_SIZE8];
 }block_brief_info_resp;
 
 typedef struct file_metedata_st{
