@@ -721,7 +721,8 @@ static enum full_sync_state __full_sync_binlog_from_master(connect_info *cinfo,f
 			return fstate;
 		}
 	}
-	if(fmark->rb_file_count > 0)
+	if((fmark->rb_file_count > 0) && \
+			(fmark->rb_file_count != (fmark->rb_curr_sync_index + 1)))
 	{
 		for(i = fmark->rb_curr_sync_index; \
 				i < fmark->rb_file_count; i++)
@@ -733,7 +734,8 @@ static enum full_sync_state __full_sync_binlog_from_master(connect_info *cinfo,f
 		}
 	}
 	i = 0;
-	if(fmark->b_file_count > 0)
+	if((fmark->b_file_count > 0) && \
+			(fmark->b_file_count != (fmark->b_curr_sync_index + 1)))
 	{
 		for(i = fmark->b_curr_sync_index; \
 				i < fmark->b_file_count; i++)
