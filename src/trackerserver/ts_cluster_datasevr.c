@@ -53,6 +53,7 @@ datasevr_block* cluster_datasevrmasterblock_get(const char *vn,size_t nvn)
 	if((dv != NULL) && (dv->master_block_index >= 0))
 	{
 		dblk = dv->blocks[dv->master_block_index];
+		logger_debug("master block index:%d,ip:%s.",dv->master_block_index,dblk->ip_addr);
 	}
 	cluster_unlock(vid);
 	return dblk;
@@ -146,6 +147,8 @@ static int __do_insert(datasevr_volume *dv,datasevr_block *dblk)
 	if((dv->block_count == 0) || \
 			(dv->master_block_index == -1))
 	{
+		logger_debug("master block index:%d,ip:%s.",dv->master_block_index,dblk->ip_addr);
+		dv->master_block_index = 0;
 		dblk->type = master_server;
 	}
 	if((ret = do_block_insert(dv,dblk)) != 0)

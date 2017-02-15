@@ -82,8 +82,8 @@ int client_recvdata_nomalloc(int sfd,char *resp_buff,const int64_t resp_bytes)
 	if((ret = recvdata_nblock(sfd,(void*)resp_buff,resp_bytes,confitems.network_timeout,NULL)) != 0)
 	{
 		logger_error("file:"__FILE__",line:%d," \
-				"Recv response data failed." \
-				,__LINE__);
+				"Recv response data failed,errno:%d,error info: %s" \
+				,__LINE__,ret,strerror(ret));
 		return ret;
 	}
 	return ret;

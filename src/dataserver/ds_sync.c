@@ -63,8 +63,11 @@ enum full_sync_state full_sync_from_master(connect_info *cinfo)
 	int nfaild_count = 0;
 	int do_full_sync_flag = 1;
 	full_sync_binlog_mark fmark;
+
 	sync_ctx sctx;
 	cinfo->sfd = -1;
+	memset(&sctx,0,sizeof(sync_ctx));
+	memset(&fmark,0,sizeof(full_sync_binlog_mark));
 	
 	while(do_full_sync_flag)
 	{
@@ -119,7 +122,8 @@ enum full_sync_state full_sync_from_master(connect_info *cinfo)
 		logger_info("Successfully connect to master server %s:%d,starting full sync." \
 				,cinfo->ipaddr,cinfo->port);
 		fstate = __full_sync_binlog_from_master(cinfo,&fmark);
-		if(fstate == F_SYNC_ERROR)
+		if((fstate == F_SYNC_ERROR) || \
+				(fstate == F_SYNC_MARK_ERROR))
 		{
 			goto err;
 		}
@@ -135,7 +139,11 @@ enum full_sync_state full_sync_from_master(connect_info *cinfo)
 		if((fmark.b_file_count + fmark.rb_file_count) > 0)
 		{
 			fstate = __full_sync_data_from_master(cinfo,&sctx);
-			if(fstate == F_SYNC_ERROR)
+			if(fstate == F_SYNC_FINISH)
+			{
+				break;
+			}
+			else if(fstate == F_SYNC_ERROR)
 			{
 				goto err;
 			}
@@ -620,7 +628,6 @@ static enum full_sync_state __full_sync_binlog_mark_initload(full_sync_binlog_ma
 	char *fields[FULL_SYNC_BINLOG_MARK_DATAFIELDS];
 	int col_count;
 
-	memset(fmark,0,sizeof(full_sync_binlog_mark));
 	snprintf(fname,sizeof(fname),"%s/sync/%s",\
 			base_path,FULL_SYNC_BINLOG_MARK_FILENAME);
 	if(fileExists(fname))
@@ -654,10 +661,6 @@ static enum full_sync_state __full_sync_binlog_mark_initload(full_sync_binlog_ma
 			fmark->last_sync_timestamp = atol(trim(fields[4]));
 		}
 		fclose(fp);
-	}
-	else
-	{
-		return F_SYNC_NO_INIFILE;
 	}
 	return F_SYNC_OK;
 }
@@ -705,10 +708,9 @@ static enum full_sync_state __full_sync_binlog_mark_write(full_sync_binlog_mark 
 static enum full_sync_state __full_sync_binlog_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark)
 {
 	assert((cinfo != NULL) && (fmark != NULL));
-	enum full_sync_state fstate;
+	enum full_sync_state fstate = F_SYNC_FINISH;
 
-	fstate = __full_sync_binlog_mark_initload(fmark);
-	if(fstate == F_SYNC_MARK_ERROR)
+	if((fstate = __full_sync_binlog_mark_initload(fmark)) != F_SYNC_OK)
 	{
 		return fstate;
 	}
@@ -720,7 +722,7 @@ static enum full_sync_state __full_sync_binlog_from_master(connect_info *cinfo,f
 	{
 		return fstate;
 	}
-	return F_SYNC_OK;
+	return fstate;
 }
 
 static enum full_sync_state __full_sync_data_from_master(connect_info *cinfo,sync_ctx *sctx)
@@ -782,7 +784,7 @@ static enum full_sync_state __full_sync_data_from_master(connect_info *cinfo,syn
 						"Write local full sync binlog context data file failed.",\
 						__LINE__);
 				do_run_async_thread = 0;
-				return ret;
+				return F_SYNC_ERROR;
 			}
 		}
 	}
@@ -817,7 +819,7 @@ static enum full_sync_state __binlogmete_from_master_get(connect_info *cinfo,ful
 	{
 		logger_error("file: "__FILE__", line: %d, " \
 					"Send failed to master server(%s:%d) "\
-					"get count of binlog files,errno:%d,", \
+					"get count of binlog files,errno:%d,"\
 					"error info:%s!",\
 				   	__LINE__,\
 					cinfo->ipaddr,\
@@ -828,8 +830,8 @@ static enum full_sync_state __binlogmete_from_master_get(connect_info *cinfo,ful
 	if((ret = client_recvheader(cinfo->sfd,&resp_bytes)) != 0)
 	{
 		logger_error("file: "__FILE__", line: %d, " \
-				"Received the request of master server(%s:%d)"\
-				" binlog file count of data packets failed,errno:%d,", \
+				"Failed to get the binlog information message "\
+				"from master server(%s:%d),errno:%d," \
 					"error info:%s!",\
 				__LINE__,\
 				cinfo->ipaddr,\
@@ -839,9 +841,9 @@ static enum full_sync_state __binlogmete_from_master_get(connect_info *cinfo,ful
 	}
 	if(resp_bytes == 0)
 	{
-		logger_warning("file: "__FILE__", line: %d, " \
+		logger_error("file: "__FILE__", line: %d, " \
 				"Have not received any binlog file count of "\
-				"data packets from master server(%s:%d).", \
+				"message from master server(%s:%d).",\
 				__LINE__,\
 				cinfo->ipaddr,\
 				cinfo->port);
@@ -849,12 +851,14 @@ static enum full_sync_state __binlogmete_from_master_get(connect_info *cinfo,ful
 	}
 	if((ret = client_recvdata_nomalloc(cinfo->sfd,(char*)resp_buff,(const int64_t)resp_bytes)) != 0)
 	{
-		logger_warning("file: "__FILE__", line: %d, " \
-				"Have not received any binlog file count of "\
-				"data packets from master server(%s:%d).", \
+		logger_error("file: "__FILE__", line: %d, " \
+				"Failed to get the binlog information message data "\
+				"from master server(%s:%d),errno:%d," \
+					"error info:%s!",\
 				__LINE__,\
 				cinfo->ipaddr,\
-				cinfo->port);
+				cinfo->port,\
+				errno,strerror(errno));
 		return F_SYNC_NETWORK_ERROR;
 	}
 	fmark->b_file_count = buff2int(resp_buff);
@@ -866,23 +870,24 @@ static enum full_sync_state __sync_binlog_from_master(connect_info *cinfo,full_s
 {
 	int i;
 	enum full_sync_state fstate;
+
+	if(fmark->rb_file_count > 0)
+	{
+		for(i = fmark->rb_curr_sync_index; \
+				i < fmark->rb_file_count; i++)
+		{
+			if((fstate = __sync_remote_binlog_data_from_master(cinfo,fmark)) != F_SYNC_OK)
+			{
+				return fstate;
+			}
+		}
+	}
 	if(fmark->b_file_count > 0)
 	{
 		for(i = fmark->b_curr_sync_index; \
 				i < fmark->b_file_count; i++)
 		{
 			if((fstate = __sync_local_binlog_data_from_master(cinfo,fmark)) != F_SYNC_OK)
-			{
-				return fstate;
-			}
-		}
-	}
-	if(fmark->rb_file_count >= 1)
-	{
-		for(i = fmark->rb_curr_sync_index; \
-				i < fmark->rb_file_count; i++)
-		{
-			if((fstate = __sync_remote_binlog_data_from_master(cinfo,fmark)) != F_SYNC_OK)
 			{
 				return fstate;
 			}
@@ -914,7 +919,7 @@ static enum full_sync_state __sync_local_binlog_data_from_master(connect_info *c
 		p = req_buff + sizeof(protocol_header);
 		int2buff(fmark->b_curr_sync_index,p);
 		p += LFS_STRUCT_PROP_LEN_SIZE4;
-		int2buff((int)REMOTE_BINLOG,p);
+		int2buff((int)LOCAL_BINLOG,p);
 		p += LFS_STRUCT_PROP_LEN_SIZE4;
 		long2buff((int64_t)fmark->b_offset,p);
 		p += LFS_STRUCT_PROP_LEN_SIZE8;
@@ -1072,6 +1077,7 @@ static enum full_sync_state __full_sync_append_remote_binlog(connect_info *cinfo
 			break;
 			rstate = F_SYNC_NETWORK_ERROR;
 		}
+		rbctx.binlog_wcache_buff_len = in_bytes;
 		if(binlog_flush(&rbctx) != 0)
 		{
 			logger_error("file: "__FILE__", line: %d, " \

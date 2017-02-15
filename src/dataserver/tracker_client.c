@@ -259,15 +259,36 @@ static void __trackerclient_state_machine(void *arg)
 #endif
 							break;
 						}
+						if(is_local_block((const char*)cinfo.ipaddr))
+						{
+							logger_info("Request sync data of the host(%s:%d) is the local machine,so donn't need the full sync.",\
+									confitems.bind_addr,\
+									confitems.bind_port);
+							is_local_hasefullsync = true;
+							pthread_mutex_unlock(&tracker_reporter_thread_lock);
+							set_trackerclientconn_state(c,reporting);
+							break;
+						}
 						enum full_sync_state fstate;
 						fstate = full_sync_from_master(&cinfo);
-						if(fstate == F_SYNC_ERROR)
+						if(fstate == F_SYNC_NETWORK_ERROR)
+						{
+							logger_error("file: "__FILE__", line: %d, " \
+									"Connection is not on the master(%s:%d) server,out of full sync.",\
+								   	__LINE__,cinfo.ipaddr,cinfo.port);
+							do_run_tracker_reported_thread = false;
+							set_trackerclientconn_state(c,quited);
+							pthread_mutex_unlock(&tracker_reporter_thread_lock);
+							break;
+						}
+						else if(fstate == F_SYNC_ERROR)
 						{
 							logger_error("file: "__FILE__", line: %d, " \
 									"Full sync data from master(%s:%d) server failed.",\
 								   	__LINE__,cinfo.ipaddr,cinfo.port);
+							do_run_tracker_reported_thread = false;
+							set_trackerclientconn_state(c,quited);
 							pthread_mutex_unlock(&tracker_reporter_thread_lock);
-							set_trackerclientconn_state(c,closed);
 							break;
 						}
 						else if(fstate == F_SYNC_OK)
@@ -276,8 +297,9 @@ static void __trackerclient_state_machine(void *arg)
 									"From the master(%s:%d) server full " \
 									"sync data unfinished.",\
 								   	__LINE__,cinfo.ipaddr,cinfo.port);
-							pthread_mutex_unlock(&tracker_reporter_thread_lock);
+							do_run_tracker_reported_thread = false;
 							set_trackerclientconn_state(c,quited);
+							pthread_mutex_unlock(&tracker_reporter_thread_lock);
 							break;
 						}
 						else if(fstate == F_SYNC_FINISH)
@@ -344,7 +366,7 @@ static void __trackerclient_state_machine(void *arg)
 				{
 					if(__tracker_report_blockstate(c) != 0)
 					{
-						set_trackerclientconn_state(c,quited);
+						set_trackerclientconn_state(c,closed);
 						break;
 					}
 					c->last_heartbeat_time = current_time;
@@ -361,7 +383,7 @@ static void __trackerclient_state_machine(void *arg)
 			}
 			sleep(1);
 			trackerclientconn_close(c);
-			set_trackerclientconn_state(c,connectd);
+			//set_trackerclientconn_state(c,connectd);
 			break;
 		case closed:
 			sleep(confitems.heart_beat_interval);
@@ -487,7 +509,7 @@ static int __check_volumeblocks_change(trackerclient_conn *c)
 				confitems.bind_port,\
 				tracker_groups.trackers[c->index].ip_addr,\
 				tracker_groups.trackers[c->index].port,ret);
-		c->nextto = quited;
+		c->nextto = closed;
 		return ret;
 	}
 	if(resp_bytes == 0)
@@ -752,7 +774,7 @@ static int __tracker_fullsync_req(trackerclient_conn *c,char *master_ipaddr,int 
 					confitems.bind_port,\
 					tracker_groups.trackers[c->index].ip_addr,\
 					tracker_groups.trackers[c->index].port);
-		c->nextto = quited;
+		c->nextto = closed;
 		return ret;
 	}
 
@@ -796,7 +818,7 @@ static int __tracker_fullsync_req(trackerclient_conn *c,char *master_ipaddr,int 
 					confitems.bind_port,\
 					tracker_groups.trackers[c->index].ip_addr,\
 					tracker_groups.trackers[c->index].port);
-		c->nextto = quited;
+		c->nextto = closed;
 		return -2;
 	}
 	resp_body = (datasevr_masterblock_body_resp*)resp_buff;

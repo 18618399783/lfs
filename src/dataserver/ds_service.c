@@ -354,8 +354,7 @@ protocol_resp_status handle_cmd_getmasterbinlogmete(conn *c)
 	protocol_header *procl_header;
 
 	procl_header = (protocol_header*)c->wbuff;
-	procl_header->header_s.body_len = LFS_STRUCT_PROP_LEN_SIZE4 + \
-									  LFS_STRUCT_PROP_LEN_SIZE8 * 2;
+	procl_header->header_s.body_len = LFS_STRUCT_PROP_LEN_SIZE4 * 2;
 	procl_header->header_s.cmd = (uint8_t)PROTOCOL_CMD_FULL_SYNC_GET_MASTER_BINLOG_METE;
 	procl_header->header_s.state = (uint8_t)PROTOCOL_RESP_STATUS_SUCCESS;
 	c->wbytes = sizeof(protocol_header);

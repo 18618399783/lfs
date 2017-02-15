@@ -69,7 +69,6 @@ datasevr_volume* volume_new()
 	dv->block_count = 0;
 	dv->allocs_size = LFS_MAX_BLOCKS_EACH_VOLUME;
 	dv->master_block_index = -1;
-	dv->slave_block_count = 0;
 	dv->last_read_block_index = 0;
 	dv->check_master_failed_count = 0;
 	return dv;
@@ -140,18 +139,8 @@ static int __datasevrvolume_insert(datasevr_volume *dv,datasevr_block *dblk)
 			return ret;
 		}
 	}
-	if(dblk->type == master_server)
-	{
-		dv->blocks[dv->block_count] = dblk;
-		dv->master_block_index = dv->block_count;
-		dv->block_count++;
-	}
-	else if(dblk->type == slave_server)
-	{
-		dv->blocks[dv->block_count] = dblk;
-		dv->slave_block_count++;
-		dv->block_count++;
-	}
+	dv->blocks[dv->block_count] = dblk;
+	dv->block_count++;
 	logger_debug("the block id %u has inserted to volume %u,current block count is %d and index is %d.",\
 			dblk->block_id,\
 			dv->volume_id,\
