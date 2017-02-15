@@ -49,7 +49,7 @@ static enum full_sync_state __full_sync_binlog_mark_initload(full_sync_binlog_ma
 static enum full_sync_state __full_sync_binlog_mark_write(full_sync_binlog_mark *fmark);
 static enum full_sync_state __full_sync_binlog_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark);
 static enum full_sync_state __full_sync_data_from_master(connect_info *cinfo,sync_ctx *sctx);
-static enum full_sync_state __binlogmete_from_master_get(connect_info *cinfo,full_sync_binlog_mark *fmark);
+static enum full_sync_state __binlogmete_get_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark);
 static enum full_sync_state __sync_binlog_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark);
 static enum full_sync_state __sync_local_binlog_data_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark);
 static enum full_sync_state __sync_remote_binlog_data_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark);
@@ -716,7 +716,7 @@ static enum full_sync_state __full_sync_binlog_from_master(connect_info *cinfo,f
 	}
 	if((fmark->b_file_count + fmark->rb_file_count) == 0)
 	{
-		if((fstate = __binlogmete_from_master_get(cinfo,fmark)) != F_SYNC_OK)
+		if((fstate = __binlogmete_get_from_master(cinfo,fmark)) != F_SYNC_OK)
 		{
 			return fstate;
 		}
@@ -804,7 +804,7 @@ static enum full_sync_state __full_sync_data_from_master(connect_info *cinfo,syn
 	return fstate;
 }
 
-static enum full_sync_state __binlogmete_from_master_get(connect_info *cinfo,full_sync_binlog_mark *fmark)
+static enum full_sync_state __binlogmete_get_from_master(connect_info *cinfo,full_sync_binlog_mark *fmark)
 {
 	int ret;
 	int64_t resp_bytes = 0;
