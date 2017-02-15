@@ -714,9 +714,12 @@ static enum full_sync_state __full_sync_binlog_from_master(connect_info *cinfo,f
 	{
 		return fstate;
 	}
-	if((fstate = __binlogmete_from_master_get(cinfo,fmark)) != F_SYNC_OK)
+	if((fmark->b_file_count + fmark->rb_file_count) == 0)
 	{
-		return fstate;
+		if((fstate = __binlogmete_from_master_get(cinfo,fmark)) != F_SYNC_OK)
+		{
+			return fstate;
+		}
 	}
 	if((fstate = __sync_binlog_from_master(cinfo,fmark)) != F_SYNC_FINISH)
 	{
