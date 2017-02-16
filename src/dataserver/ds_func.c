@@ -80,6 +80,7 @@ void conf_items_init(void)
 	confitems.sync_report_interval = DEFAULT_SYNC_INTERVAL;
 	confitems.sync_wait_time = DEFAULT_SYNC_WAIT_TIME_MSEC;
 	confitems.sync_interval = DEFAULT_SYNC_INTERVAL;
+	confitems.binlog_flush_interval = DEFAULT_BINLOG_FLUSH_INTERVAL;
 	confitems.state_report_interval = DEFAULT_STATE_REPORT_INTERVAL;
 	confitems.block_vfs_interval = DEFAULT_BLOCK_VFS_INTERVAL;
 	confitems.block_snapshot_interval = DEFAULT_BLOCK_SNAPSHOT_INTERVAL;
@@ -160,6 +161,7 @@ int set_cfg2globalobj(void)
 	confitems.sync_report_interval = cfg_get_intvalue(&cfg_hashtable,"sync.report.interval",DEFAULT_SYNC_INTERVAL);
 	confitems.sync_wait_time = cfg_get_intvalue(&cfg_hashtable,"sync.wait.time",DEFAULT_SYNC_WAIT_TIME_MSEC);
 	confitems.sync_interval = cfg_get_intvalue(&cfg_hashtable,"sync.interval",DEFAULT_SYNC_INTERVAL);
+	confitems.binlog_flush_interval = cfg_get_intvalue(&cfg_hashtable,"binlog.flush.interval",DEFAULT_BINLOG_FLUSH_INTERVAL);
 	confitems.state_report_interval = cfg_get_intvalue(&cfg_hashtable,"state.report.interval",DEFAULT_STATE_REPORT_INTERVAL);
 	confitems.block_snapshot_interval = cfg_get_intvalue(&cfg_hashtable,"block.snapshot.interval",DEFAULT_BLOCK_SNAPSHOT_INTERVAL);
 	confitems.block_vfs_interval = cfg_get_intvalue(&cfg_hashtable,"block.vfs.interval",DEFAULT_BLOCK_VFS_INTERVAL);

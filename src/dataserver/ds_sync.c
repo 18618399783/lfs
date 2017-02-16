@@ -1097,7 +1097,7 @@ static enum full_sync_state __full_sync_handle(connect_info *cinfo,sync_ctx *sct
 	char req_buff[sizeof(protocol_header) + sizeof(sync_file_req)];
 	protocol_header *req_header;
 	sync_file_req *sreq;
-	int64_t file_size;
+	int64_t file_size = 0;
 
 	memset(req_buff,0,sizeof(req_buff));
 	req_header = (protocol_header*)req_buff;

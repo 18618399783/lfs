@@ -341,6 +341,12 @@ int binlog_flush(binlog_ctx *bctx)
 	return __binlog_flush(bctx);
 }
 
+int binlog_lock_flush(binlog_ctx *bctx)
+{
+	assert(bctx != NULL);
+	return __binlog_lock_flush(bctx);
+}
+
 enum binlog_file_state binlog_read(sync_ctx *sctx,binlog_ctx *bctx,binlog_record *brecord,int *brecord_size)
 {
 	assert(sctx != NULL);

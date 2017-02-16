@@ -139,6 +139,20 @@ static void block_vfs_statistics_cb(int argc,void **argv)
 			block_vfs_statistics_cb,NULL);
 }
 
+static void local_binlog_flush_cb(int argc,void **argv)
+{
+	binlog_lock_flush(&bctx);
+	sched_timer(confitems.binlog_flush_interval * (1000 * 1000),\
+			local_binlog_flush_cb,NULL);
+}
+
+static void remote_binlog_flush_cb(int argc,void **argv)
+{
+	binlog_lock_flush(&rbctx);
+	sched_timer(confitems.binlog_flush_interval * (1000 * 1000),\
+			remote_binlog_flush_cb,NULL);
+}
+
 int main(int argc,char** argv)
 {
 	int c;
@@ -247,8 +261,12 @@ int main(int argc,char** argv)
 		fprintf(stderr,"\nFailed to initialize disk work threads!\n");
 		goto fin;
 	}
+
 	sched_timer(confitems.block_snapshot_interval * (1000 * 1000),mnt_block_stat_snapshot_cb,NULL);
 	sched_timer(confitems.block_vfs_interval * (1000 * 1000),block_vfs_statistics_cb,NULL);
+	sched_timer(confitems.binlog_flush_interval * (1000 * 1000),local_binlog_flush_cb,NULL);
+	sched_timer(confitems.binlog_flush_interval * (1000 * 1000),remote_binlog_flush_cb,NULL);
+
 	sfd = server_sockets(confitems.bind_addr,confitems.bind_port,confitems.network_timeout); 
 	if(sfd < 0)
 	{
