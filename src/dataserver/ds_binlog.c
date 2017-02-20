@@ -747,8 +747,9 @@ static int __binlog_sync_offset_locate(binlog_ctx *bctx,int64_t last_sync_sequen
 	FILE *fp;
 	char sline[BINLOG_RECORD_SIZE] = {0};
 	char *fields[SYNC_BAT_DATAFIELDS];
-	int col_count;
-	int64_t record_sequence;
+	int record_len = 0;
+	int col_count = 0;
+	int64_t record_sequence = 0;
 	int cindex = *bindex;
 	int64_t offset = 0;
 
@@ -764,11 +765,13 @@ static int __binlog_sync_offset_locate(binlog_ctx *bctx,int64_t last_sync_sequen
 
 	while(fgets(sline,sizeof(sline),fp) != NULL)
 	{
+		record_len = 0;
 		if(*sline == '\0')
 		{
 			continue;
 		}
-		col_count = splitStr(sline,' ',\
+		record_len = strlen(sline);
+		col_count = splitStr(sline,BAT_DATA_SEPERATOR_SPLITSYMBOL,\
 				fields,BINLOG_RECORD_COLUMN);
 		if(col_count != BINLOG_RECORD_COLUMN)
 		{
@@ -786,13 +789,13 @@ static int __binlog_sync_offset_locate(binlog_ctx *bctx,int64_t last_sync_sequen
 			goto err;
 		}
 		record_sequence = atol(fields[0]);
-		if(last_sync_sequence > record_sequence)
+		if(last_sync_sequence >= record_sequence)
 		{
-			break;
+			offset += record_len;
 		}
 		else
 		{
-			offset += strlen(sline);
+			break;
 		}
 		memset(sline,0,sizeof(sline));
 	}
@@ -853,7 +856,7 @@ static enum binlog_file_state __binlog_record_parse(sync_ctx *sctx,binlog_ctx *b
 	char *cols[BINLOG_RECORD_COLUMN];
 
 	BINLOG_FILENAME(bctx->binlog_file_name,sctx->b_index,b_fn)
-	if((ret = splitStr(record,' ',cols,BINLOG_RECORD_COLUMN)) < BINLOG_RECORD_COLUMN)
+	if((ret = splitStr(record,BAT_DATA_SEPERATOR_SPLITSYMBOL,cols,BINLOG_RECORD_COLUMN)) < BINLOG_RECORD_COLUMN)
 	{
 		logger_error("file: "__FILE__", line: %d, " \
 				"In binlog file \"%s\",file offset:%ld,"\

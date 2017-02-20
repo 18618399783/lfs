@@ -113,9 +113,11 @@ void file_upload_done_callback(conn *c,const int err_no)
 
 			}
 			char binlog_buff[BINLOG_RECORD_SIZE] = {0};
-			snprintf(binlog_buff,sizeof(binlog_buff),"%ld %c %s\n",\
+			snprintf(binlog_buff,sizeof(binlog_buff),"%ld%c%c%c%s\n",\
 					c->fctx->f_timestamp,\
+					BAT_DATA_SEPERATOR_SPLITSYMBOL,\
 					FILE_OP_TYPE_CREATE_FILE,\
+					BAT_DATA_SEPERATOR_SPLITSYMBOL,\
 					c->fctx->f_id);
 			if(binlog_write(&bctx,binlog_buff) != 0)
 			{
@@ -162,9 +164,11 @@ void asyncfile_done_callback(conn *c,const int err_no)
 	else
 	{
 		char binlog_buff[BINLOG_RECORD_SIZE] = {0};
-		snprintf(binlog_buff,sizeof(binlog_buff),"%ld %c %s\n",\
+		snprintf(binlog_buff,sizeof(binlog_buff),"%ld%c%c%c%s\n",\
 				c->fctx->f_timestamp,\
+				BAT_DATA_SEPERATOR_SPLITSYMBOL,\
 				FILE_OP_TYPE_CREATE_FILE,\
+				BAT_DATA_SEPERATOR_SPLITSYMBOL,\
 				c->fctx->f_id);
 		if(binlog_write(&rbctx,binlog_buff) != 0)
 		{

@@ -108,7 +108,7 @@ int client_recvheader(int sfd,int64_t *in_bytes)
 	if(protcl_header->header_s.state != PROTOCOL_RESP_STATUS_SUCCESS)
 	{
 		logger_error("file: "__FILE__", line: %d, " \
-					"Response status 0x%02x.",\
+					"Response status 0x%02X.",\
 				   	__LINE__,protcl_header->header_s.state);
 		*in_bytes = 0;
 		return protcl_header->header_s.state;

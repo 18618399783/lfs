@@ -722,7 +722,7 @@ static enum full_sync_state __full_sync_binlog_from_master(connect_info *cinfo,f
 		}
 	}
 	if((fmark->rb_file_count > 0) && \
-			(fmark->rb_file_count != (fmark->rb_curr_sync_index + 1)))
+			(fmark->rb_file_count != fmark->rb_curr_sync_index))
 	{
 		for(i = fmark->rb_curr_sync_index; \
 				i < fmark->rb_file_count; i++)
@@ -735,7 +735,7 @@ static enum full_sync_state __full_sync_binlog_from_master(connect_info *cinfo,f
 	}
 	i = 0;
 	if((fmark->b_file_count > 0) && \
-			(fmark->b_file_count != (fmark->b_curr_sync_index + 1)))
+			(fmark->b_file_count != fmark->b_curr_sync_index))
 	{
 		for(i = fmark->b_curr_sync_index; \
 				i < fmark->b_file_count; i++)
@@ -1095,8 +1095,10 @@ static enum full_sync_state __full_sync_handle(connect_info *cinfo,sync_ctx *sct
 {
 	int ret;
 	char req_buff[sizeof(protocol_header) + sizeof(sync_file_req)];
+	char resp_buff[LFS_STRUCT_PROP_LEN_SIZE8] = {0};
 	protocol_header *req_header;
 	sync_file_req *sreq;
+	int64_t resp_buff_len;
 	int64_t file_size = 0;
 
 	memset(req_buff,0,sizeof(req_buff));
@@ -1121,7 +1123,7 @@ static enum full_sync_state __full_sync_handle(connect_info *cinfo,sync_ctx *sct
 					errno,strerror(errno));
 			return F_SYNC_NETWORK_ERROR;
 		}
-		if((ret = client_recvheader(cinfo->sfd,&file_size)) != 0)
+		if((ret = client_recvheader(cinfo->sfd,&resp_buff_len)) != 0)
 		{
 			logger_error("file: "__FILE__", line: %d," \
 					"Receive file id %s sync data response header from master server(%s:%d) failed.",\
@@ -1131,6 +1133,17 @@ static enum full_sync_state __full_sync_handle(connect_info *cinfo,sync_ctx *sct
 					cinfo->port);
 			return F_SYNC_NETWORK_ERROR;
 		}
+		if((ret = client_recvdata_nomalloc(cinfo->sfd,resp_buff,resp_buff_len)) != 0)
+		{
+			logger_error("file: "__FILE__", line: %d," \
+					"Receive file id %s response package from master server(%s:%d) failed.",\
+				   	__LINE__,\
+					brecord->f_id,\
+					cinfo->ipaddr,\
+					cinfo->port);
+			return F_SYNC_NETWORK_ERROR;
+		}
+		file_size = buff2long(resp_buff);
 		if((ret = client_recvfile(cinfo->sfd,(const char*)brecord->f_block_map_name,\
 				0,(const int64_t)file_size,confitems.network_timeout)) != 0)
 		{
