@@ -200,7 +200,7 @@ int dio_write(conn *c)
 	int ret = LFS_OK;
 	file_ctx *fctx = NULL;
 	fctx = c->fctx;
-	int write_bytes;
+	int write_bytes,write_fin_bytes;
 	char *write_buff;
 
 	do{
@@ -212,8 +212,8 @@ int dio_write(conn *c)
 			}
 		}
 		write_buff = fctx->f_buff + fctx->f_woffset; 
-		write_bytes = fctx->f_size - fctx->f_woffset;
-		if(write(fctx->fd,write_buff,write_bytes) != write_bytes)
+		write_bytes = fctx->f_buff_offset - fctx->f_woffset;
+		if((write_fin_bytes = write(fctx->fd,write_buff,write_bytes)) != write_bytes)
 		{
 			logger_error("file: "__FILE__", line: %d, " \
 					"Write block map name %s file failed,errno:%d,"\

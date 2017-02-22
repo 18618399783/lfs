@@ -146,13 +146,15 @@ int client_sendfile(int sfd,const char *f_name,const int64_t f_offset,\
 	flags = fcntl(sfd,F_GETFL,0);
 	if(flags < 0)
 	{
-		return errno;
+		ret = errno;
+		goto err;
 	}
 	if(flags & O_NONBLOCK)
 	{
 		if(fcntl(sfd,F_SETFL,flags & ~O_NONBLOCK) == -1)
 		{
-			return errno;
+			ret = errno;
+			goto err;
 		}
 	}
 	offset = f_offset;
@@ -163,7 +165,7 @@ int client_sendfile(int sfd,const char *f_name,const int64_t f_offset,\
 		if(send_bytes < 0)
 		{
 			ret = errno;
-			break;
+			goto err;
 		}
 		remain_bytes -= send_bytes;
 	}
@@ -174,6 +176,7 @@ int client_sendfile(int sfd,const char *f_name,const int64_t f_offset,\
 			ret = errno;
 		}
 	}
+err:
 	close(fd);
 	return ret;
 }

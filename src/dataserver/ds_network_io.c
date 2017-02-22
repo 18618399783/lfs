@@ -709,6 +709,7 @@ static enum network_read_result __network_fread(conn *c)
 		res = read(c->sfd,c->fctx->f_buff + c->fctx->f_buff_offset,avail);
 		if(res > 0)
 		{
+			c->fctx->f_roffset += res;
 			c->fctx->f_buff_offset += res;
 			if(res == avail)
 				continue;

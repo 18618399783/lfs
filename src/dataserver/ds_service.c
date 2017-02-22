@@ -66,14 +66,14 @@ void file_upload_done_callback(conn *c,const int err_no)
 	}
 	else
 	{
-		if(fctx->f_total_offset < fctx->f_total_size)
+		if(fctx->f_woffset >= fctx->f_size)
 		{
 			__resp_header(c,PROTOCOL_RESP_STATUS_SUCCESS);
 			file_ctx_reset(fctx);
 			dio_notify_nio(c,conn_write,EV_WRITE|EV_PERSIST);
 			return;
 		}
-		else
+		else if(fctx->f_total_offset >= fctx->f_total_size)
 		{
 			struct stat stat_buff;
 			if(stat(fctx->f_block_map_name,&stat_buff) == 0)
