@@ -156,30 +156,29 @@ int dio_read(conn *c)
 	
 	do
 	{
-		if((ret = __open_file(fctx,fctx->f_roffset)) != 0)
+		if(c->fctx->f_offset >= c->fctx->f_size)
 		{
 			break;
 		}
-		remain_bytes = fctx->f_size - fctx->f_roffset;
+		if((ret = __open_file(fctx,fctx->f_offset)) != 0)
+		{
+			break;
+		}
+		remain_bytes = fctx->f_size - fctx->f_offset;
 		buff_bytes = fctx->f_buff_size - fctx->f_buff_offset;
 		read_bytes = (buff_bytes < remain_bytes)?buff_bytes:remain_bytes;
-		if(read(fctx->fd,fctx->f_buff + fctx->f_roffset,\
+		if(read(fctx->fd,fctx->f_buff + fctx->f_buff_offset,\
 					read_bytes) != read_bytes)
 		{
 			logger_error("file: "__FILE__", line: %d, " \
 					"read the original file name %s,block map name %s failed,errno:%d,"\
 					"error info:%s!",\
 					__LINE__,fctx->f_orginl_name,fctx->f_block_map_name,errno,strerror(errno));
-			ret = errno;
+			ret = LFS_ERROR;
 			break;
 		}
 		fctx->f_buff_offset += read_bytes;
-		fctx->f_roffset += read_bytes;
-		if(fctx->f_roffset <= fctx->f_size)
-		{
-			dio_notify_nio(c,conn_fwrite,EV_WRITE|EV_PERSIST);
-			return LFS_OK;
-		}
+		dio_notify_nio(c,conn_fwrite,EV_WRITE|EV_PERSIST);
 		ret = LFS_OK;
 	}while(0);
 	if(fctx->fd > 0)
@@ -201,33 +200,32 @@ int dio_write(conn *c)
 	file_ctx *fctx = NULL;
 	fctx = c->fctx;
 	int write_bytes,write_fin_bytes;
-	char *write_buff;
 
 	do{
 		if(fctx->fd < 0)
 		{
-			if((ret = __open_file(fctx,fctx->f_woffset)) != 0)
+			if((ret = __open_file(fctx,fctx->f_offset)) != 0)
 			{
 				break;
 			}
 		}
-		write_buff = fctx->f_buff + fctx->f_woffset; 
-		write_bytes = fctx->f_buff_offset - fctx->f_woffset;
-		if((write_fin_bytes = write(fctx->fd,write_buff,write_bytes)) != write_bytes)
+		write_bytes = fctx->f_buff_offset;
+		if((write_fin_bytes = write(fctx->fd,fctx->f_buff,write_bytes)) != write_bytes)
 		{
 			logger_error("file: "__FILE__", line: %d, " \
 					"Write block map name %s file failed,errno:%d,"\
 					"error info:%s!",\
 					__LINE__,fctx->f_block_map_name,errno,strerror(errno));
-			ret = errno;
+			ret = LFS_ERROR;
 			break;
 		}
-		fctx->f_woffset += write_bytes;
-		fctx->f_total_offset += write_bytes;
-		if(fctx->f_woffset < fctx->f_size)
+		fctx->f_offset += write_fin_bytes;
+		fctx->f_total_offset += write_fin_bytes;
+		if(fctx->f_offset < fctx->f_size)
 		{
 			file_ctx_buff_reset(fctx);
 			dio_notify_nio(c,conn_fread,EV_READ|EV_PERSIST);
+			return LFS_OK;
 		}
 		if(fctx->fd > 0)
 		{
@@ -259,7 +257,7 @@ void dio_write_error_cleanup(conn *c)
 	{
 		close(fctx->fd);
 		fctx->fd = -1;
-		if(fctx->f_woffset < fctx->f_size)
+		if(fctx->f_rwoffset < fctx->f_size)
 		{
 			file_unlink(fctx);
 			return;

@@ -409,7 +409,7 @@ static void __state_machine(conn *c)
 			switch(ret){
 			case WRITE_COMPLETE:
 				conn_reset(c);
-				set_conn_state(c,conn_waiting);
+				set_conn_state(c,conn_n2dio);
 				break;
 			case WRITE_INCOMPLETE:
 				flag = true;
@@ -700,7 +700,7 @@ static enum network_read_result __network_fread(conn *c)
 
 	while(1)
 	{
-		if((c->fctx->f_roffset >= c->fctx->f_size) || \
+		if((c->fctx->f_rwoffset >= c->fctx->f_size) || \
 				(c->fctx->f_buff_offset >= c->fctx->f_buff_size))
 		{
 			return READ_COMPLETE;
@@ -709,8 +709,8 @@ static enum network_read_result __network_fread(conn *c)
 		res = read(c->sfd,c->fctx->f_buff + c->fctx->f_buff_offset,avail);
 		if(res > 0)
 		{
-			c->fctx->f_roffset += res;
 			c->fctx->f_buff_offset += res;
+			c->fctx->f_rwoffset += res;
 			if(res == avail)
 				continue;
 			else
@@ -783,14 +783,15 @@ static enum network_write_result __network_fwrite(conn *c)
 	
 	while(1)
 	{
-		remain_bytes = c->fctx->f_size - c->fctx->f_woffset;
-		logger_debug("-----conn fwrite size:%d.",remain_bytes);
+		remain_bytes = c->fctx->f_buff_offset - c->fctx->f_rwoffset;
 		if(remain_bytes > 0)
 		{
-			written_bytes = write(c->sfd,c->fctx->f_buff + c->fctx->f_woffset,remain_bytes);
+			written_bytes = write(c->sfd,c->fctx->f_buff + c->fctx->f_rwoffset,remain_bytes);
 			if(written_bytes > 0)
 			{
-				c->fctx->f_woffset += written_bytes;
+				c->fctx->f_rwoffset += written_bytes;
+				c->fctx->f_offset += written_bytes;
+				c->fctx->f_total_offset += written_bytes;
 				continue;
 			}
 			if((written_bytes == -1) && (errno == EINTR || errno == EWOULDBLOCK))
@@ -832,7 +833,7 @@ static enum network_write_result __network_fsend(conn *c)
 				   	__LINE__,c->fctx->f_path_name,errno,strerror(errno));
 		return WRITE_HARD_ERROR;
 	}
-	offset = c->fctx->f_woffset;
+	offset = c->fctx->f_offset;
 	remain_bytes = c->fctx->f_size;
 	while(remain_bytes > 0)
 	{

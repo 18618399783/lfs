@@ -66,14 +66,7 @@ void file_upload_done_callback(conn *c,const int err_no)
 	}
 	else
 	{
-		if(fctx->f_woffset >= fctx->f_size)
-		{
-			__resp_header(c,PROTOCOL_RESP_STATUS_SUCCESS);
-			file_ctx_reset(fctx);
-			dio_notify_nio(c,conn_write,EV_WRITE|EV_PERSIST);
-			return;
-		}
-		else if(fctx->f_total_offset >= fctx->f_total_size)
+		if(fctx->f_total_offset >= fctx->f_total_size)
 		{
 			struct stat stat_buff;
 			if(stat(fctx->f_block_map_name,&stat_buff) == 0)
@@ -143,6 +136,13 @@ void file_upload_done_callback(conn *c,const int err_no)
 			Base64encode(resp->file_b64_id,\
 					(const char*)c->fctx->f_id,strlen(c->fctx->f_id));
 			c->wbytes += sizeof(lfs_fileupload_resp);
+			dio_notify_nio(c,conn_write,EV_WRITE|EV_PERSIST);
+			return;
+		}
+		else if(fctx->f_offset >= fctx->f_size)
+		{
+			__resp_header(c,PROTOCOL_RESP_STATUS_SUCCESS);
+			file_ctx_reset(fctx);
 			dio_notify_nio(c,conn_write,EV_WRITE|EV_PERSIST);
 			return;
 		}
@@ -438,7 +438,7 @@ protocol_resp_status handle_cmd_copymasterbinlog(conn *c)
 	bfile_size = stat_buff.st_size - boffset;
 	strcpy(c->fctx->f_path_name,b_fn);
 	c->fctx->f_size = bfile_size;
-	c->fctx->f_woffset = boffset;
+	c->fctx->f_offset = boffset;
 	req_header = (protocol_header*)c->wbuff;
 	req_header->header_s.body_len = LFS_STRUCT_PROP_LEN_SIZE8;
 	req_header->header_s.cmd = PROTOCOL_CMD_FULL_SYNC_COPY_MASTER_BINLOG; 
@@ -495,7 +495,7 @@ protocol_resp_status handle_cmd_copymasterdata(conn *c)
 	}
 	file_size = (int64_t)stat_buff.st_size;
 	c->fctx->f_size = file_size;
-	c->fctx->f_woffset = 0;
+	c->fctx->f_offset = 0;
 	resp_header = (protocol_header*)c->wbuff;
 	resp_header->header_s.body_len = LFS_STRUCT_PROP_LEN_SIZE8;
 	resp_header->header_s.cmd = PROTOCOL_CMD_FULL_SYNC_COPY_MASTER_DATA; 

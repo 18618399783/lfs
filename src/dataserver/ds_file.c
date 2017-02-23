@@ -86,7 +86,7 @@ file_ctx* file_ctx_new(const int sfd,const int buffer_size,enum file_op_type opt
 		fctx->f_crc32 = 0;
 		fctx->alloc_count = 0;
 		fctx->f_buff_size = buffer_size;
-		fctx->f_roffset = fctx->f_woffset = fctx->f_buff_offset = 0;
+		fctx->f_rwoffset = fctx->f_buff_offset = 0;
 		fctx->f_size = fctx->f_offset = fctx->f_total_offset = fctx->f_total_size = 0;
 		fctx->f_op_func = NULL;
 		fctx->f_dio_func = NULL;
@@ -113,7 +113,7 @@ file_ctx* file_ctx_new(const int sfd,const int buffer_size,enum file_op_type opt
 	fctx->f_op_type = opt;
 	fctx->f_crc32 = 0;
 	fctx->alloc_count = 0;
-	fctx->f_roffset = fctx->f_woffset = fctx->f_buff_offset = 0;
+	fctx->f_rwoffset = fctx->f_buff_offset = 0;
 	fctx->f_size = fctx->f_offset = fctx->f_total_offset = fctx->f_total_size = 0;
 	fctx->f_op_func = NULL;
 	fctx->f_dio_func = NULL;
@@ -143,7 +143,7 @@ void file_ctx_clean(file_ctx *fctx)
 	fctx->f_timestamp = 0;
 	fctx->f_crc32 = 0;
 	fctx->alloc_count = 0;
-	fctx->f_roffset = fctx->f_woffset = fctx->f_buff_offset = 0;
+	fctx->f_rwoffset = fctx->f_buff_offset = 0;
 	fctx->f_size = fctx->f_offset = fctx->f_total_offset = fctx->f_total_size = 0;
 	fctx->f_op_func = NULL;
 	fctx->f_dio_func = NULL;
@@ -161,7 +161,7 @@ void file_ctx_reset(file_ctx *fctx)
 {
 	assert(fctx != NULL);
 	fctx->alloc_count = 0;
-	fctx->f_roffset = fctx->f_woffset = fctx->f_buff_offset = 0;
+	fctx->f_rwoffset = fctx->f_buff_offset = 0;
 	fctx->f_size = fctx->f_offset = fctx->f_total_offset = fctx->f_total_size = 0;
 	memset(fctx->f_buff,0,fctx->f_buff_size);
 	return;
@@ -170,7 +170,7 @@ void file_ctx_reset(file_ctx *fctx)
 void file_ctx_buff_reset(file_ctx *fctx)
 {
 	assert(fctx != NULL);
-	fctx->f_buff_offset = 0;
+	fctx->f_buff_offset = fctx->f_rwoffset = 0;
 	memset(fctx->f_buff,0,fctx->f_buff_size);
 	return;
 }
