@@ -6,9 +6,12 @@
  *
  */
 //crc32.c
+#include <stdio.h>
 #include "crc32.h"
 
-static unsigned int crcTable[256] =
+#define CRC32_BUFF_SIZE 16 * 1024
+
+static unsigned int crc32_table[256] =
 {
      0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3, 
      0x0EDB8832, 0x79DCB8A4, 0xE0D5E91E, 0x97D2D988, 0x09B64C2B, 0x7EB17CBD, 0xE7B82D07, 0x90BF1D91, 
@@ -44,11 +47,36 @@ static unsigned int crcTable[256] =
      0xB3667A2E, 0xC4614AB8, 0x5D681B02, 0x2A6F2B94, 0xB40BBE37, 0xC30C8EA1, 0x5A05DF1B, 0x2D02EF8D
 };
 
-unsigned long get_crc32_value(unsigned char *buf,unsigned int len)
+unsigned long get_crc32_value(unsigned char*buf,unsigned int len)
+{
+	return get_default_crc32_value(0,buf,len);
+}
+
+unsigned long get_default_crc32_value(unsigned int deft,unsigned char *buf,unsigned int len)
 {     
      unsigned int i;
-     unsigned long crc = 0xFFFFFFFF;
-     for (i=0; i<len; i++)
-     crc = ((crc>>8) & 0x00FFFFFF) ^ crcTable[(crc ^ *buf++) & 0x000000FF ];
-     return( crc^0xFFFFFFFF );
+     unsigned long crc = deft ^ 0xFFFFFFFF;
+     for (i = 0; i < len; i++)
+     crc = ((crc >> 8) & 0x00FFFFFF) ^ crc32_table[(crc ^ *buf++) & 0x000000FF];
+     return (crc ^ 0xFFFFFFFF);
 }  
+
+unsigned long get_file_crc32_value(const char *fp)
+{
+	unsigned char crc_buff[CRC32_BUFF_SIZE];
+	unsigned int len;
+	unsigned long crc32 = 0;
+	FILE *fd;
+
+	if((fd = fopen(fp,"r")) == NULL)
+	{
+		return 0;
+	}
+	while((len = fread(crc_buff,sizeof(unsigned char),CRC32_BUFF_SIZE,fd)) > 0)
+	{
+		crc32 = get_default_crc32_value(crc32,crc_buff,len);
+	}
+	fclose(fd);
+	return crc32;
+}
+

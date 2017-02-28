@@ -78,11 +78,13 @@ enum full_sync_state full_sync_from_master(connect_info *cinfo)
 					"error info:%s!", __LINE__,errno,strerror(errno));
 			return F_SYNC_NETWORK_ERROR;
 		}
+#if 0
 		if(socket_bind(cinfo->sfd,NULL,0) != 0)
 		{
 			fstate = F_SYNC_NETWORK_ERROR;
 			goto err;
 		}
+#endif
 		if(set_noblock(cinfo->sfd) != 0)
 		{
 			fstate = F_SYNC_NETWORK_ERROR;

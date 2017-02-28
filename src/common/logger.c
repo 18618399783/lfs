@@ -38,7 +38,7 @@ static int check_and_mk_log_dir(const char *base_path)
 		if (mkdir(data_path, 0755) != 0)
 		{
 			fprintf(stderr, "mkdir \"%s\" failed, " \
-				"errno: %d, error info: %s.", \
+				"errno: %d, error info: %s.\n", \
 				data_path, errno, strerror(errno));
 			return errno != 0 ? errno : EPERM;
 		}
@@ -70,7 +70,7 @@ int logger_init(const char *base_path, const char *filename_prefix)
 	if ((g_log_fd = open(logfile, O_WRONLY | O_CREAT | O_APPEND, 0644)) < 0)
 	{
 		fprintf(stderr, "open log file \"%s\" to write failed, " \
-			"errno: %d, error info: %s.", \
+			"errno: %d, error info: %s.\n", \
 			logfile, errno, strerror(errno));
 		g_log_fd = STDERR_FILENO;
 		result = errno != 0 ? errno : EACCES;
@@ -122,7 +122,7 @@ static int logger_fsync(const bool bNeedLock)
 	{
 		fprintf(stderr, "file: "__FILE__", line: %d, " \
 			"call pthread_mutex_lock failed, " \
-			"errno: %d, error info: %s.", \
+			"errno: %d, error info: %s.\n", \
 			__LINE__, result, strerror(result));
 	}
 
@@ -151,7 +151,7 @@ static int logger_fsync(const bool bNeedLock)
 	{
 		fprintf(stderr, "file: "__FILE__", line: %d, " \
 			"call pthread_mutex_unlock failed, " \
-			"errno: %d, error info: %s.", \
+			"errno: %d, error info: %s.\n", \
 			__LINE__, result, strerror(result));
 	}
 
@@ -172,14 +172,14 @@ static void doLog(const char *caption, const char* text, const int text_len, \
 	{
 		fprintf(stderr, "file: "__FILE__", line: %d, " \
 			"call pthread_mutex_lock failed, " \
-			"errno: %d, error info: %s.", \
+			"errno: %d, error info: %s.\n", \
 			__LINE__, result, strerror(result));
 	}
 
 	if (text_len + 64 > sizeof(log_buff))
 	{
 		fprintf(stderr, "file: "__FILE__", line: %d, " \
-			"log buff size: %d < log text length: %d ", \
+			"log buff size: %d < log text length: %d \n", \
 			__LINE__, (int)sizeof(log_buff), text_len + 64);
 		pthread_mutex_unlock(&log_thread_lock);
 		return;
@@ -208,7 +208,7 @@ static void doLog(const char *caption, const char* text, const int text_len, \
 	{
 		fprintf(stderr, "file: "__FILE__", line: %d, " \
 			"call pthread_mutex_unlock failed, " \
-			"errno: %d, error info: %s.", \
+			"errno: %d, error info: %s.\n", \
 			__LINE__, result, strerror(result));
 	}
 }
@@ -237,7 +237,7 @@ void logger_string(const char *caption,char *title,const unsigned char *s,const 
 	{
 		fprintf(stderr, "file: "__FILE__", line: %d, " \
 			"call pthread_mutex_lock failed, " \
-			"errno: %d, error info: %s.", \
+			"errno: %d, error info: %s.\n", \
 			__LINE__, result, strerror(result));
 		return;
 	}
@@ -245,7 +245,7 @@ void logger_string(const char *caption,char *title,const unsigned char *s,const 
 	if (title_len + 64 > sizeof(log_buff))
 	{
 		fprintf(stderr, "file: "__FILE__", line: %d, " \
-			"log buff size: %d < log text length: %d ", \
+			"log buff size: %d < log text length: %d \n", \
 			__LINE__, (int)sizeof(log_buff), title_len + 64);
 		pthread_mutex_unlock(&log_thread_lock);
 		return;
@@ -295,7 +295,7 @@ void logger_string(const char *caption,char *title,const unsigned char *s,const 
 	{
 		fprintf(stderr, "file: "__FILE__", line: %d, " \
 			"call pthread_mutex_unlock failed, " \
-			"errno: %d, error info: %s.", \
+			"errno: %d, error info: %s.\n", \
 			__LINE__, result, strerror(result));
 	}
 	return;
@@ -325,7 +325,7 @@ void logger_hex(const char *caption,char *title,const unsigned char *s,const int
 	{
 		fprintf(stderr, "file: "__FILE__", line: %d, " \
 			"call pthread_mutex_lock failed, " \
-			"errno: %d, error info: %s.", \
+			"errno: %d, error info: %s.\n", \
 			__LINE__, result, strerror(result));
 		return;
 	}
@@ -333,7 +333,7 @@ void logger_hex(const char *caption,char *title,const unsigned char *s,const int
 	if (title_len + 64 > sizeof(log_buff))
 	{
 		fprintf(stderr, "file: "__FILE__", line: %d, " \
-			"log buff size: %d < log text length: %d ", \
+			"log buff size: %d < log text length: %d \n", \
 			__LINE__, (int)sizeof(log_buff), title_len + 64);
 		pthread_mutex_unlock(&log_thread_lock);
 		return;
@@ -391,7 +391,7 @@ void logger_hex(const char *caption,char *title,const unsigned char *s,const int
 	{
 		fprintf(stderr, "file: "__FILE__", line: %d, " \
 			"call pthread_mutex_unlock failed, " \
-			"errno: %d, error info: %s.", \
+			"errno: %d, error info: %s.\n", \
 			__LINE__, result, strerror(result));
 	}
 	return;

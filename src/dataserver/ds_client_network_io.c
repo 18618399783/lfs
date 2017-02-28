@@ -162,7 +162,7 @@ int client_sendfile(int sfd,const char *f_name,const int64_t f_offset,\
 	while(remain_bytes > 0)
 	{
 		send_bytes = sendfile(sfd,fd,&offset,remain_bytes);
-		if(send_bytes < 0)
+		if(send_bytes <= 0)
 		{
 			ret = errno;
 			goto err;
@@ -189,7 +189,7 @@ int client_recvfile(int sfd,const char *f_name,const int64_t f_offset,\
 	char buff[LFS_WRITE_BUFF_SIZE];
 	int64_t remain_bytes;
 	int recv_bytes;
-	int in_bytes;
+	int written_bytes;
 	int oflag = O_WRONLY | O_CREAT;
 
 	if(f_offset <= 0)
@@ -209,10 +209,11 @@ int client_recvfile(int sfd,const char *f_name,const int64_t f_offset,\
 		logger_error("file: "__FILE__", line: %d, " \
 					"Set file: %s offset failed, errno:%d,error info: %s.",\
 				   	__LINE__,f_name,errno,strerror(errno));
-		goto err;
+		return ret;
 	}
-	in_bytes = 0;
+	written_bytes = 0;
 	remain_bytes = f_size;
+	memset(buff,0,sizeof(buff));
 	while(remain_bytes > 0)
 	{
 		if(remain_bytes > sizeof(buff))
@@ -223,23 +224,43 @@ int client_recvfile(int sfd,const char *f_name,const int64_t f_offset,\
 		{
 			recv_bytes = remain_bytes;
 		}
-		if((ret = recvdata_nblock(sfd,(void*)buff,recv_bytes,timeout,&in_bytes)) != 0)
+		memset(buff,0,sizeof(buff));
+		if((ret = recvdata_nblock(sfd,(void*)buff,recv_bytes,timeout,NULL)) != 0)
 		{
 			logger_error("file: "__FILE__", line: %d, " \
 					"Reading %s network data failed, errno:%d,error info: %s.", __LINE__,f_name,errno,strerror(errno));
-			goto err;
+			close(fd);
+			unlink(f_name);
+			return ret;
 		}
-		if((in_bytes > 0) && (write(fd,buff,in_bytes) != in_bytes))
+		if(write(fd,buff,recv_bytes != recv_bytes))
 		{
 			logger_error("file: "__FILE__", line: %d, " \
-					"Write %s file data failed.", \
-					__LINE__,f_name);
-			ret = LFS_ERROR;
-			goto err;
+					"Write %s file data failed,errno:%d,error info: %s.", \
+					__LINE__,f_name,errno,strerror(errno));
+			close(fd);
+			unlink(f_name);
+			return LFS_ERROR;
 		}
-		remain_bytes -= in_bytes;
+		if(confitems.file_fsync_written_bytes > 0)
+		{
+			written_bytes += recv_bytes;
+			if(written_bytes >= confitems.file_fsync_written_bytes)
+			{
+				written_bytes = 0;
+				if((ret = fsync(fd)) != 0)
+				{
+					logger_error("file: "__FILE__", line: %d, " \
+							"Reflush file %s data to disk failed,errno:%d,error info: %s.", \
+							__LINE__,f_name,errno,strerror(errno));
+					close(fd);
+					unlink(f_name);
+					return ret;
+				}
+			}
+		}
+		remain_bytes -= recv_bytes;
 	}
-err:
 	close(fd);
 	return ret;
 }

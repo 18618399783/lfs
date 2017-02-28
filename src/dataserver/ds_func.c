@@ -98,6 +98,7 @@ void conf_items_init(void)
 	confitems.block_free_size_ratio = DEFAULT_BLOCK_FREE_SIZE_RATIO;
 	confitems.block_mount = NULL;
 	confitems.weight = DEFAULT_WEIGHT; 
+	confitems.file_fsync_written_bytes = DEFAULT_FILE_FSYNC_WRITTEN_BYTES;
 }
 
 void dataserver_destroy()
@@ -177,6 +178,7 @@ int set_cfg2globalobj(void)
 	confitems.block_max_file_count = cfg_get_intvalue(&cfg_hashtable,"block.max.file.count",DEFAULT_BLOCK_MAX_FILE_COUNT);
 	confitems.block_free_size_ratio = cfg_get_floatvalue(&cfg_hashtable,"block.free.size.ratio",DEFAULT_BLOCK_FREE_SIZE_RATIO);
 	confitems.weight = cfg_get_intvalue(&cfg_hashtable,"weight",DEFAULT_WEIGHT);
+	confitems.file_fsync_written_bytes = cfg_get_intvalue(&cfg_hashtable,"file.fsync.written.bytes",DEFAULT_FILE_FSYNC_WRITTEN_BYTES);
 	return LFS_OK;
 }
 

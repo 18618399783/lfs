@@ -82,7 +82,7 @@ void file_upload_done_callback(conn *c,const int err_no)
 			}
 			char old_blockmn[MAX_PATH_SIZE] = {0};
 			memcpy(old_blockmn,fctx->f_block_map_name,sizeof(fctx->f_block_map_name));
-			fctx->f_crc32 = get_crc32_value((unsigned char*)fctx->f_buff,(unsigned int)fctx->f_size);
+			fctx->f_crc32 = get_file_crc32_value((const char*)old_blockmn);
 			if(file_metedata_pack(c->fctx) != 0)
 			{
 				logger_error("file: "__FILE__", line: %d, " \

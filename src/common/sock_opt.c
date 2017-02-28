@@ -291,7 +291,26 @@ int recvdata_nblock(int sfd,void *data,const int size,const int timeout,int *in_
 	left_bytes = size;
 	while (left_bytes > 0)
 	{
-
+		read_bytes = recv(sfd, p, left_bytes, 0);
+		if(read_bytes > 0)
+		{
+			left_bytes -= read_bytes;
+			p += read_bytes;
+			continue;
+		}
+		if(read_bytes < 0)
+		{
+			if(!(errno == EAGAIN || errno == EWOULDBLOCK))
+			{
+				ret_code = errno != 0 ? errno : EINTR;
+				break;
+			}
+		}
+		else
+		{
+			ret_code = ETIMEDOUT;
+			break;
+		}
 		if (timeout <= 0)
 		{
 			res = select(sfd+1, &read_set, NULL, NULL, NULL);
@@ -313,21 +332,6 @@ int recvdata_nblock(int sfd,void *data,const int size,const int timeout,int *in_
 			ret_code = ETIMEDOUT;
 			break;
 		}
-
-		read_bytes = recv(sfd, p, left_bytes, 0);
-		if (read_bytes < 0)
-		{
-			ret_code = errno != 0 ? errno : EINTR;
-			break;
-		}
-		if (read_bytes == 0)
-		{
-			ret_code = ENOTCONN;
-			break;
-		}
-
-		left_bytes -= read_bytes;
-		p += read_bytes;
 	}
 
 	if (in_bytes != NULL)

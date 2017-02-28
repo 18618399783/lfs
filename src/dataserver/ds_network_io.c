@@ -824,6 +824,7 @@ static enum network_write_result __network_fsend(conn *c)
 	int64_t send_bytes;
 	int64_t offset;
 	int64_t remain_bytes;
+	int flags;
 
 	fd = open(c->fctx->f_path_name,O_RDONLY);
 	if(fd < 0)
@@ -833,16 +834,50 @@ static enum network_write_result __network_fsend(conn *c)
 				   	__LINE__,c->fctx->f_path_name,errno,strerror(errno));
 		return WRITE_HARD_ERROR;
 	}
+	flags = fcntl(c->sfd,F_GETFL,0);
+	if(flags < 0)
+	{
+		logger_error("file: "__FILE__", line: %d, " \
+					"Open file: %s failed, errno:%d,error info: %s.",\
+				   	__LINE__,c->fctx->f_path_name,errno,strerror(errno));
+		close(fd);
+		return WRITE_HARD_ERROR;
+	}
+	if(flags & O_NONBLOCK)
+	{
+		if(fcntl(c->sfd,F_SETFL,flags & ~O_NONBLOCK) == -1)
+		{
+			logger_error("file: "__FILE__", line: %d, " \
+					"Setting properties file: %s failed, errno:%d,error info: %s.",\
+					__LINE__,c->fctx->f_path_name,errno,strerror(errno));
+			close(fd);
+			return WRITE_HARD_ERROR;
+		}
+	}
 	offset = c->fctx->f_offset;
 	remain_bytes = c->fctx->f_size;
 	while(remain_bytes > 0)
 	{
 		send_bytes = sendfile(c->sfd,fd,&offset,remain_bytes);
-		if(send_bytes < 0)
+		if(send_bytes <= 0)
 		{
+			logger_error("file: "__FILE__", line: %d, " \
+					"Send file: %s failed, errno:%d,error info: %s.",\
+					__LINE__,c->fctx->f_path_name,errno,strerror(errno));
 			break;
 		}
 		remain_bytes -= send_bytes;
+	}
+	if(flags & O_NONBLOCK)
+	{
+		if(fcntl(c->sfd,F_SETFL,flags) == -1)
+		{
+			logger_error("file: "__FILE__", line: %d, " \
+					"Settingg properties file: %s failed, errno:%d,error info: %s.",\
+					__LINE__,c->fctx->f_path_name,errno,strerror(errno));
+			close(fd);
+			return WRITE_HARD_ERROR;
+		}
 	}
 	close(fd);
 	return WRITE_COMPLETE;
