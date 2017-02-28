@@ -233,7 +233,7 @@ int client_recvfile(int sfd,const char *f_name,const int64_t f_offset,\
 			unlink(f_name);
 			return ret;
 		}
-		if(write(fd,buff,recv_bytes != recv_bytes))
+		if(write(fd,buff,recv_bytes) != recv_bytes)
 		{
 			logger_error("file: "__FILE__", line: %d, " \
 					"Write %s file data failed,errno:%d,error info: %s.", \
