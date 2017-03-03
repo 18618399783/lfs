@@ -46,15 +46,13 @@ int file_metedata_unpack(const char *file_b64name,file_metedata *fmete);
 int main(int argc,char **argv)
 {
 	int sfd;
-	char *file_id;
 	char *remote_name;
 	char *local_filename;
 	char *pipport;
 	char *pport;
-	char *p;
 	char ip[IP_ADDRESS_SIZE];
 	int port;
-	int ret = 0,len;
+	int ret = 0;
 
 	if(argc < 4)
 	{
@@ -91,20 +89,7 @@ int main(int argc,char **argv)
 		goto err;
 	}
 #endif
-	p = strchr(remote_name,'.');
-	len = p - remote_name;
-	file_id = (char*)malloc(sizeof(char) * (len + strlen(p)));
-	if(file_id == NULL)
-	{
-		printf("handle remote name failed.\n");
-		goto err;
-	}
-	memset(file_id,0,len);
-	memcpy(file_id,remote_name,len);
-	memcpy(file_id + len,p,strlen(p));
-	printf("------file id:%s--------\n",file_id);
-
-	downloadfile_req(sfd,file_id,local_filename);
+	downloadfile_req(sfd,remote_name,local_filename);
 err:
 	close(sfd);
 	return ret;
@@ -120,7 +105,21 @@ void usage(char **argv)
 int downloadfile_req(const int sfd,const char *file_id,const char *local_filename)
 {
 	int ret = 0;
-	LFS_SPLIT_VOLUME_NAME_AND_BLOCK_INDEX_BY_FILE_ID(file_id)
+	char *b64decode;
+	int b64len;
+
+	b64len = Base64decode_len((const char*)file_id);
+	b64decode = (char*)malloc(b64len * sizeof(char) + 1);
+	if(b64decode == NULL)
+	{
+		printf("Allocate memory to base64 decode buff failed.\n");
+		return -1;
+	}
+	memset(b64decode,0,b64len + 1);
+	Base64decode(b64decode,(const char*)file_id);
+	printf("file id:%s\n",b64decode);
+
+	LFS_SPLIT_VOLUME_NAME_AND_BLOCK_INDEX_BY_FILE_ID(b64decode)
 	ret = downloadfile_req_do(sfd,local_filename,\
 			volume_name,pblock_index,fid_map_name_buff);
 	return ret;
@@ -152,7 +151,7 @@ int downloadfile_req_do(const int sfd,const char *local_filename,\
 	req_header->header_s.body_len = sizeof(lfs_filedownload_req);
 	req_header->header_s.cmd = PROTOCOL_CMD_FILE_DOWNLOAD; 
 
-	long2buff((int64_t)fmete.f_offset,req_body->file_offset);		
+	long2buff(0,req_body->file_offset);		
 	long2buff((int64_t)fmete.f_size,req_body->download_size);
 	memcpy(req_body->mnt_block_index,block_index,strlen(block_index));
 	memcpy(req_body->file_map_name,fid_map_name,strlen(fid_map_name));
@@ -194,7 +193,6 @@ int downloadfile_to_file(const int sfd,const char *local_filename,\
 	char buff[LFS_WRITE_BUFF_SIZE];
 	int64_t remain_bytes;
 	int recv_bytes;
-	int in_bytes;
 
 	fd = open(local_filename,O_WRONLY | O_CREAT | O_TRUNC,0644);
 	if(fd < 0)
@@ -202,8 +200,8 @@ int downloadfile_to_file(const int sfd,const char *local_filename,\
 		printf("create file %s failed.\n",local_filename);
 		return -1;
 	}
-	in_bytes = 0;
 	remain_bytes = file_size;
+	memset(buff,0,sizeof(buff));
 	while(remain_bytes > 0)
 	{
 		if(remain_bytes > sizeof(buff))
@@ -214,21 +212,22 @@ int downloadfile_to_file(const int sfd,const char *local_filename,\
 		{
 			recv_bytes = remain_bytes;
 		}
-		if((ret = recvdata_nblock(sfd,(void*)buff,recv_bytes,DEFAULT_NETWORK_TIMEOUT,&in_bytes)) != 0)
+		memset(buff,0,sizeof(buff));
+		if((ret = recvdata_nblock(sfd,(void*)buff,recv_bytes,DEFAULT_NETWORK_TIMEOUT,NULL)) != 0)
 		{
 			printf("recv status:%d.\n",ret);
 			close(fd);
 			unlink(local_filename);
 			return ret;
 		}
-		if((in_bytes > 0) && (write(fd,buff,in_bytes) != in_bytes))
+		if(write(fd,buff,recv_bytes) != recv_bytes)
 		{
 			close(fd);
 			unlink(local_filename);
 			return ret;
 		}
-		printfBuffHex("data:",(const char*)buff,(const int)recv_bytes);
-		remain_bytes -= in_bytes;
+		//printfBuffHex("data:",(const char*)buff,(const int)recv_bytes);
+		remain_bytes -= recv_bytes;
 	}
 	close(fd);
 	return 0;

@@ -237,6 +237,7 @@ protocol_resp_status handle_cmd_fileupload(conn *c)
 	}
 
 	memcpy(c->fctx->f_orginl_name,f_upload_req->file_name,strlen(f_upload_req->file_name));
+	c->fctx->f_offset = 0;
 	c->fctx->f_size = (int64_t)buff2long(f_upload_req->file_size);
 	c->fctx->f_total_size = (int64_t)buff2long(f_upload_req->file_total_size);
 	c->fctx->f_op_flags = O_WRONLY | O_CREAT;
