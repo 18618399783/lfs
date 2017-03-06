@@ -249,7 +249,7 @@ int cluster_wlc_block_add(wlc_skiplist *wlcsl,wlc_ctx *wctx)
 	return LFS_OK;
 }
 
-datasevr_block* cluster_wlc_master_block_get(wlc_skiplist *wlcsl)
+datasevr_block* cluster_wlc_write_block_get(wlc_skiplist *wlcsl)
 {
 	assert(wlcsl != NULL);
 	datasevr_block *dblk = NULL;

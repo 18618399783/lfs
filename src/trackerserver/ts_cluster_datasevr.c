@@ -63,7 +63,7 @@ datasevr_block* cluster_wlc_writedatasevrblock_get()
 {
 	datasevr_block *dblk = NULL;
 
-	dblk = cluster_wlc_master_block_get(clusters.wlcsl);
+	dblk = cluster_wlc_write_block_get(clusters.wlcsl);
 	return dblk;
 }
 
