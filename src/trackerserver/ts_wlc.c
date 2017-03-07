@@ -44,7 +44,6 @@ wlc_skiplist* wlcsl_create(void)
 	for(j = 0; j < WLC_SKIPLIST_MAX_LEVEL; j++)
 	{
 		wsl->header->level[j].forward = NULL;
-		wsl->header->level[j].span = 0;
 	}
 	wsl->header->backward = NULL;
 	wsl->tail = NULL;
@@ -100,7 +99,6 @@ wlc_skiplist_node* wlcsl_insert(wlc_skiplist *wlcsl,int wlc,datasevr_block *dblk
 				  x->level[i].forward->dblk->block_id < \
 				  dblk->block_id)))
 		{
-			rank[i] += x->level[i].span;
 			x = x->level[i].forward;
 		}
 		update[i] = x;
@@ -112,7 +110,6 @@ wlc_skiplist_node* wlcsl_insert(wlc_skiplist *wlcsl,int wlc,datasevr_block *dblk
 		{
 			rank[i] = 0;
 			update[i] = wlcsl->header;
-			update[i]->level[i].span = wlcsl->length;
 		}
 		wlcsl->level = level;
 	}
@@ -121,12 +118,6 @@ wlc_skiplist_node* wlcsl_insert(wlc_skiplist *wlcsl,int wlc,datasevr_block *dblk
 	{
 		x->level[i].forward = update[i]->level[i].forward;
 		update[i]->level[i].forward = x;
-		x->level[i].span = update[i]->level[i].span - (rank[0] - rank[i]);
-		update[i]->level[i].span = (rank[0] - rank[i]) + 1;
-	}
-	for(i = level; i < wlcsl->level; i++)
-	{
-		update[i]->level[i].span++;
 	}
 	x->backward = (update[0] == wlcsl->header) ? NULL : update[0];
 	if(x->level[0].forward)
@@ -147,12 +138,7 @@ void wlcsl_node_delete(wlc_skiplist *wlcsl,wlc_skiplist_node *x,\
 	{
 		if(update[i]->level[i].forward == x)
 		{
-			update[i]->level[i].span += x->level[i].span - 1;
 			update[i]->level[i].forward = x->level[i].forward;
-		}
-		else
-		{
-			update[i]->level[i].span -= 1;
 		}
 	}
 	if(x->level[0].forward)
