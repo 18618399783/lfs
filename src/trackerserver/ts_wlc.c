@@ -86,13 +86,11 @@ wlc_skiplist_node* wlcsl_insert(wlc_skiplist *wlcsl,int wlc,datasevr_block *dblk
 	assert(wlcsl != NULL);
 	assert(dblk != NULL);
 	wlc_skiplist_node *update[WLC_SKIPLIST_MAX_LEVEL],*x;
-	unsigned int rank[WLC_SKIPLIST_MAX_LEVEL];
 	int i,level;
 
 	x = wlcsl->header;
 	for(i = wlcsl->level - 1;i >= 0; i--)
 	{
-		rank[i] = (i == (wlcsl->level - 1)?0:rank[i + 1]);
 		while(x->level[i].forward && \
 				(x->level[i].forward->wlc < wlc || \
 				 (x->level[i].forward->wlc == wlc && \
@@ -108,7 +106,6 @@ wlc_skiplist_node* wlcsl_insert(wlc_skiplist *wlcsl,int wlc,datasevr_block *dblk
 	{
 		for(i = wlcsl->level; i < level; i++)
 		{
-			rank[i] = 0;
 			update[i] = wlcsl->header;
 		}
 		wlcsl->level = level;

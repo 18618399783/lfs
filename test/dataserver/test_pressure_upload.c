@@ -20,6 +20,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <wait.h>
 
 #include "common_define.h"
 #include "shared_func.h"
@@ -28,6 +29,7 @@
 #include "lfs_client_types.h"
 
 #define DEFAULT_NETWORK_TIMEOUT 30
+#define WORK_PROCESS_NUMBER 10
 
 void usage(char **argv);
 int recv_header(int sfd,int64_t *in_bytes);
@@ -35,6 +37,7 @@ int uploadfile_sendbigfile(const int sfd,const char *filename,\
 		const int64_t offset,const int64_t filesize,const int timeout);
 int uploadfile_by_filename(const int sfd,const char *filename);
 int uploadfile_do(const int sfd,const char *filename,int64_t file_size);
+int conn_server(const char *ip,const int port);
 
 int main(int argc,char **argv)
 {
@@ -44,7 +47,7 @@ int main(int argc,char **argv)
 	char *pport;
 	char ip[IP_ADDRESS_SIZE];
 	int port;
-	int ret = 0;
+	int ret = 0,n = 0;
 
 	if(argc < 3)
 	{
@@ -61,27 +64,36 @@ int main(int argc,char **argv)
 	}
 	snprintf(ip,sizeof(ip),"%.*s",(int)(pport - pipport),pipport);
 	port = atoi(pport + 1);
-	sfd = socket(AF_INET,SOCK_STREAM,0);
-	if(sfd < 0)
+
+	for(n = 0;n < WORK_PROCESS_NUMBER; n++)
 	{
-		printf("socket create failed,errno:%d,error info:%s\n",\
-				errno,strerror(errno));
-		return errno;
-	}
-	if((ret = set_noblock(sfd)) != 0)
-	{
-		printf("set socket non block failed.\n");
-		goto err;
-	}
-	if((ret = connectserver_nb(sfd,ip,port,0)) != 0)
-	{
-		printf("connect server %s:%d failed.\n",ip,port);
-		goto err;
+		pid_t pid = fork();
+		if(pid < 0)
+		{
+			printf("fork error\n");
+			goto err;
+		}
+		else if(pid == 0)
+		{
+			printf("child pid:%d is uploading.\n",getpid());
+			sfd = conn_server((const char*)ip,(const int)port);
+			if(sfd <= 0)
+			{
+				printf("connect server failes.\n");
+				exit(0);
+			}
+			if((ret = uploadfile_by_filename(sfd,local_filename)) < 0)
+			{
+				printf("pid:%d upload file fails.\n",getpid());
+			}
+		}
+		else
+		{
+			printf("parent pid:%d.\n",getppid());
+		}
 	}
 
-	uploadfile_by_filename(sfd,local_filename);
 err:
-	close(sfd);
 	return ret;
 }
 
@@ -163,6 +175,30 @@ int uploadfile_do(const int sfd,const char *filename,int64_t file_size)
 	}
 	printf("file id:%s\n",resp_buff);
 	return 0;
+}
+
+int conn_server(const char *ip,const int port)
+{
+	int sfd;
+	int ret;
+	sfd = socket(AF_INET,SOCK_STREAM,0);
+	if(sfd < 0)
+	{
+		printf("socket create failed,errno:%d,error info:%s\n",\
+				errno,strerror(errno));
+		return -1;
+	}
+	if((ret = set_noblock(sfd)) != 0)
+	{
+		printf("set socket non block failed.\n");
+		return -1;
+	}
+	if((ret = connectserver_nb(sfd,ip,port,0)) != 0)
+	{
+		printf("connect server %s:%d failed.\n",ip,port);
+		return -1;
+	}
+	return sfd;
 }
 
 int recv_header(int sfd,int64_t *in_bytes)

@@ -23,6 +23,33 @@
 #include "logger.h"
 #include "sock_opt.h"
 
+uint32_t get_ipaddr(get_sock_name_func get_name,int sfd,char *buff,const int buff_size)
+{
+	struct sockaddr_in addr;
+	socklen_t addr_len;
+
+	memset(&addr,0,sizeof(addr));
+	addr_len = sizeof(addr);
+
+	if(get_name(sfd,(struct sockaddr*)&addr,&addr_len) != 0)
+	{
+		*buff = '\0';
+		return INADDR_NONE;
+	}
+	if(addr_len > 0)
+	{
+		if(inet_ntop(AF_INET,&addr.sin_addr,buff,buff_size) == NULL)
+		{
+			*buff = '\0';
+		}
+	}
+	else
+	{
+		*buff = '\0';
+	}
+	return addr.sin_addr.s_addr;
+}
+
 int socket_bind(int fd,const char*bind_host,const int port)
 {
 	struct sockaddr_in bindaddr;
@@ -234,21 +261,6 @@ int senddata_nblock(int sfd,void *data,const int size,const int timeout)
 	left_bytes = size;
 	while (left_bytes > 0)
 	{
-		write_bytes = send(sfd, p, left_bytes, 0);
-		if (write_bytes < 0)
-		{
-			if (!(errno == EAGAIN || errno == EWOULDBLOCK))
-			{
-				return errno != 0 ? errno : EINTR;
-			}
-		}
-		else
-		{
-			left_bytes -= write_bytes;
-			p += write_bytes;
-			continue;
-		}
-
 		if (timeout <= 0)
 		{
 			result = select(sfd+1, NULL, &write_set, NULL, NULL);
@@ -268,6 +280,22 @@ int senddata_nblock(int sfd,void *data,const int size,const int timeout)
 		{
 			return ETIMEDOUT;
 		}
+
+		write_bytes = send(sfd, p, left_bytes, 0);
+		if (write_bytes < 0)
+		{
+			if (!(errno == EAGAIN || errno == EWOULDBLOCK))
+			{
+				return errno != 0 ? errno : EINTR;
+			}
+		}
+		else
+		{
+			left_bytes -= write_bytes;
+			p += write_bytes;
+			continue;
+		}
+
 	}
 	return 0;
 }

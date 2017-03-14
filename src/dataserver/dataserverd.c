@@ -167,10 +167,6 @@ int main(int argc,char** argv)
 	signal(SIGPIPE,sig_ignore_handle);
 	thread_sigpipe_register();
 
-	/* init settings*/
-	settings_init();
-	conf_items_init();
-	ctxs_init();
 
 	while(-1 != (c = getopt(argc,argv,
 		"d" /*daemon mode*/
@@ -212,6 +208,10 @@ int main(int argc,char** argv)
 		fprintf(stderr,"\nFailed to initialize cfg file!\n");
 		goto fin;
 	}
+	/* init settings*/
+	settings_init();
+	conf_items_init();
+	ctxs_init();
 	set_cfg2globalobj();
 	set_logger_level(confitems.logger_level);
 	if(logger_init(base_path,confitems.logger_file_name) != 0)

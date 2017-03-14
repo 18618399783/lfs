@@ -67,6 +67,16 @@ void ctxs_init(void)
 	ctxs.is_fullsyncdone = false;
 	ctxs.last_mount_block_index = 0;
 	ctxs.block_opt_count = 0;
+	char *local_addr = cfg_get_strvalue(&cfg_hashtable,"bind.addr");
+	if( local_addr != NULL)
+	{
+		ctxs.sid = hash_func((const void*)local_addr,\
+				(size_t)strlen(local_addr));
+	}
+	else
+	{
+		ctxs.sid = 0;
+	}
 }
 
 void conf_items_init(void)

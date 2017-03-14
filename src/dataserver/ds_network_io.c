@@ -238,7 +238,8 @@ static void __worker_thread_reg_cond(void)
 
 static int __setup_nio_thread(libevent_thread *thread)
 {
-	thread->base = event_init();
+	//thread->base = event_init();
+	thread->base = event_base_new();
 	if(!thread->base)
 	{
 		logger_error("file: "__FILE__", line: %d, " \
@@ -359,6 +360,7 @@ static void __state_machine(conn *c)
 				set_conn_state(c,conn_closed);
 				break;
 			case READ_SOFT_ERROR:
+				set_conn_state(c,conn_closed);
 				break;
 			}
 			break;
