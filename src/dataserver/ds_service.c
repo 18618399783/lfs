@@ -71,14 +71,14 @@ void file_upload_done_callback(conn *c,const int err_no)
 			struct stat stat_buff;
 			if(stat(fctx->f_block_map_name,&stat_buff) == 0)
 			{
-				fctx->f_timestamp = stat_buff.st_mtime;
+				fctx->f_create_timestamp = stat_buff.st_mtime;
 			}
 			else
 			{
 				logger_warning("file: "__FILE__", line: %d, " \
 						"Call stat the original file name %s,block map name %s failed,errno:%d,error info:%s!",\
 						__LINE__,fctx->f_orginl_name,fctx->f_block_map_name,errno,STRERROR(errno));
-				fctx->f_timestamp = time(NULL);
+				fctx->f_create_timestamp = time(NULL);
 			}
 			char old_blockmn[MAX_PATH_SIZE] = {0};
 			memcpy(old_blockmn,fctx->f_block_map_name,sizeof(fctx->f_block_map_name));
@@ -107,7 +107,7 @@ void file_upload_done_callback(conn *c,const int err_no)
 			}
 			char binlog_buff[BINLOG_RECORD_SIZE] = {0};
 			snprintf(binlog_buff,sizeof(binlog_buff),"%ld%c%c%c%s\n",\
-					c->fctx->f_timestamp,\
+					c->fctx->f_create_timestamp,\
 					BAT_DATA_SEPERATOR_SPLITSYMBOL,\
 					FILE_OP_TYPE_CREATE_FILE,\
 					BAT_DATA_SEPERATOR_SPLITSYMBOL,\
@@ -165,7 +165,7 @@ void asyncfile_done_callback(conn *c,const int err_no)
 	{
 		char binlog_buff[BINLOG_RECORD_SIZE] = {0};
 		snprintf(binlog_buff,sizeof(binlog_buff),"%ld%c%c%c%s\n",\
-				c->fctx->f_timestamp,\
+				c->fctx->f_create_timestamp,\
 				BAT_DATA_SEPERATOR_SPLITSYMBOL,\
 				FILE_OP_TYPE_CREATE_FILE,\
 				BAT_DATA_SEPERATOR_SPLITSYMBOL,\
@@ -188,9 +188,9 @@ void asyncfile_done_callback(conn *c,const int err_no)
 		resp_header->header_s.state = (uint8_t)PROTOCOL_RESP_STATUS_SUCCESS;
 		c->wbytes = sizeof(protocol_header);
 
-		if(c->fctx->f_timestamp > ctxs.last_sync_sequence)
+		if(c->fctx->f_create_timestamp > ctxs.last_sync_sequence)
 		{
-			ctxs.last_sync_sequence = c->fctx->f_timestamp;
+			ctxs.last_sync_sequence = c->fctx->f_create_timestamp;
 		}
 		dio_notify_nio(c,conn_write,EV_WRITE|EV_PERSIST);
 		return;
@@ -242,7 +242,8 @@ protocol_resp_status handle_cmd_fileupload(conn *c)
 	c->fctx->f_total_size = (int64_t)buff2long(f_upload_req->file_total_size);
 	c->fctx->f_op_flags = O_WRONLY | O_CREAT;
 	c->fctx->f_crc32 = rand();
-	c->fctx->f_timestamp = time(NULL);
+	c->fctx->f_create_timestamp = time(NULL);
+	c->fctx->f_modify_timestamp = time(NULL);
 	c->fctx->f_dio_func = dio_write; 
 	c->fctx->f_op_func = file_upload_done_callback; 
 	c->fctx->f_cleanup_func = dio_write_error_cleanup; 
@@ -331,7 +332,7 @@ protocol_resp_status handle_cmd_asynccopyfile(conn *c)
 		return PROTOCOL_RESP_STATUS_ERROR_MEMORY;
 	}
 
-	c->fctx->f_timestamp = (time_t)buff2long(pc);
+	c->fctx->f_create_timestamp = (time_t)buff2long(pc);
 	f_id_length = (int)buff2long(pc + LFS_STRUCT_PROP_LEN_SIZE8);
 	memcpy(c->fctx->f_id,pc + \
 			LFS_STRUCT_PROP_LEN_SIZE8 + \

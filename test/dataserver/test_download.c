@@ -276,7 +276,10 @@ int file_metedata_unpack(const char *file_b64name,file_metedata *fmete)
 	//file_binname_len = Base64decode_len((const char*)file_name_b64buff);
 	Base64decode(file_binname,file_name_b64buff);
 	p = file_binname;
-	fmete->f_timestamp = (time_t)buff2long((const char*)p);
+	p = p + LFS_MACHINE_ID_BUFF_SIZE;
+	fmete->f_create_timestamp = (time_t)buff2long((const char*)p);
+	p = p + LFS_FILE_METEDATA_TIME_BUFF_SIZE;
+	fmete->f_modify_timestamp = (time_t)buff2long((const char*)p);
 	p = p + LFS_FILE_METEDATA_TIME_BUFF_SIZE;
 	fmete->f_offset = buff2long((const char*)p);
 	p = p + LFS_FILE_METEDATA_OFFSET_BUFF_SIZE;
