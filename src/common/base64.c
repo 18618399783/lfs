@@ -1,127 +1,336 @@
+/**
+*
+*
+*
+*
+*
+**/
+
+#include <time.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <ctype.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
 #include "base64.h"
 
+#define BASE64_IGNORE  -1
+#define BASE64_PAD   -2
 
-/* aaaack but it's fast and const should make it shared text page. */
-static const unsigned char pr2six[256] =
+void base64_set_line_length(struct base64_context_st *context, const int length)
 {
-    /* ASCII table */
-    64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-    64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-    64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 62, 64, 64, 64, 63,
-    52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 64, 64, 64, 64, 64, 64,
-    64,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
-    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 64, 64, 64, 64, 64,
-    64, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 64, 64, 64, 64, 64,
-    64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-    64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-    64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-    64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-    64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-    64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-    64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
-    64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64
-};
-
-int Base64decode_len(const char *bufcoded)
-{
-    int nbytesdecoded;
-    register const unsigned char *bufin;
-    register int nprbytes;
-
-    bufin = (const unsigned char *) bufcoded;
-    while (pr2six[*(bufin++)] <= 63);
-
-    nprbytes = (bufin - (const unsigned char *) bufcoded) - 1;
-    nbytesdecoded = ((nprbytes + 3) / 4) * 3;
-
-    return nbytesdecoded + 1;
+    context->line_length = (length / 4) * 4;
 }
 
-int Base64decode(char *bufplain, const char *bufcoded)
+void base64_set_line_separator(struct base64_context_st *context, \
+		const char *pLineSeparator)
 {
-    int nbytesdecoded;
-    register const unsigned char *bufin;
-    register unsigned char *bufout;
-    register int nprbytes;
-
-    bufin = (const unsigned char *) bufcoded;
-    while (pr2six[*(bufin++)] <= 63);
-    nprbytes = (bufin - (const unsigned char *) bufcoded) - 1;
-    nbytesdecoded = ((nprbytes + 3) / 4) * 3;
-
-    bufout = (unsigned char *) bufplain;
-    bufin = (const unsigned char *) bufcoded;
-
-    while (nprbytes > 4) {
-    *(bufout++) =
-        (unsigned char) (pr2six[*bufin] << 2 | pr2six[bufin[1]] >> 4);
-    *(bufout++) =
-        (unsigned char) (pr2six[bufin[1]] << 4 | pr2six[bufin[2]] >> 2);
-    *(bufout++) =
-        (unsigned char) (pr2six[bufin[2]] << 6 | pr2six[bufin[3]]);
-    bufin += 4;
-    nprbytes -= 4;
-    }
-
-    /* Note: (nprbytes == 1) would be an error, so just ingore that case */
-    if (nprbytes > 1) {
-    *(bufout++) =
-        (unsigned char) (pr2six[*bufin] << 2 | pr2six[bufin[1]] >> 4);
-    }
-    if (nprbytes > 2) {
-    *(bufout++) =
-        (unsigned char) (pr2six[bufin[1]] << 4 | pr2six[bufin[2]] >> 2);
-    }
-    if (nprbytes > 3) {
-    *(bufout++) =
-        (unsigned char) (pr2six[bufin[2]] << 6 | pr2six[bufin[3]]);
-    }
-
-    *(bufout++) = '\0';
-    nbytesdecoded -= (4 - nprbytes) & 3;
-    return nbytesdecoded;
+    context->line_sep_len = snprintf(context->line_separator, \
+			sizeof(context->line_separator), "%s", pLineSeparator);
 }
 
-static const char basis_64[] =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-int Base64encode_len(int len)
+void base64_init_ex(struct base64_context_st *context, const int nLineLength, \
+		const unsigned char chPlus, const unsigned char chSplash, \
+		const unsigned char chPad)
 {
-    return ((len + 2) / 3 * 4) + 1;
+      int i;
+
+      memset(context, 0, sizeof(struct base64_context_st));
+
+      context->line_length = nLineLength;
+      context->line_separator[0] = '\n';
+      context->line_separator[1] = '\0';
+      context->line_sep_len = 1;
+
+      // 0..25 -> 'A'..'Z'
+      for (i=0; i<=25; i++)
+      {
+         context->valueToChar[i] = (char)('A'+i);
+      }
+      // 26..51 -> 'a'..'z'
+      for (i=0; i<=25; i++ )
+      {
+         context->valueToChar[i+26] = (char)('a'+i);
+      }
+      // 52..61 -> '0'..'9'
+      for (i=0; i<=9; i++ )
+      {
+         context->valueToChar[i+52] = (char)('0'+i);
+      }
+      context->valueToChar[62] = chPlus;
+      context->valueToChar[63] = chSplash;
+
+      memset(context->charToValue, BASE64_IGNORE, sizeof(context->charToValue));
+      for (i=0; i<64; i++ )
+      {
+         context->charToValue[context->valueToChar[i]] = i;
+      }
+
+      context->pad_ch = chPad;
+      context->charToValue[chPad] = BASE64_PAD;
 }
 
-int Base64encode(char *encoded, const char *string, int len)
+int base64_get_encode_length(struct base64_context_st *context, const int nSrcLen)
 {
-    int i;
-    char *p;
+   int outputLength;
 
-    p = encoded;
-    for (i = 0; i < len - 2; i += 3) {
-    *p++ = basis_64[(string[i] >> 2) & 0x3F];
-    *p++ = basis_64[((string[i] & 0x3) << 4) |
-                    ((int) (string[i + 1] & 0xF0) >> 4)];
-    *p++ = basis_64[((string[i + 1] & 0xF) << 2) |
-                    ((int) (string[i + 2] & 0xC0) >> 6)];
-    *p++ = basis_64[string[i + 2] & 0x3F];
-    }
-    if (i < len) {
-    *p++ = basis_64[(string[i] >> 2) & 0x3F];
-    if (i == (len - 1)) {
-        *p++ = basis_64[((string[i] & 0x3) << 4)];
-        *p++ = '=';
-    }
-    else {
-        *p++ = basis_64[((string[i] & 0x3) << 4) |
-                        ((int) (string[i + 1] & 0xF0) >> 4)];
-        *p++ = basis_64[((string[i + 1] & 0xF) << 2)];
-    }
-    *p++ = '=';
-    }
+   outputLength = ((nSrcLen + 2) / 3) * 4;
 
-    *p++ = '\0';
-    return p - encoded;
+   if (context->line_length != 0)
+   {
+       int lines =  (outputLength + context->line_length - 1) / 
+			context->line_length - 1;
+       if ( lines > 0 )
+       {
+          outputLength += lines  * context->line_sep_len;
+       }
+   }
+
+   return outputLength;
 }
+
+char *base64_encode_ex(struct base64_context_st *context, const char *src, \
+		const int nSrcLen, char *dest, int *dest_len, const bool bPad)
+{
+  int linePos;
+  int leftover;
+  int combined;
+  char *pDest;
+  int c0, c1, c2, c3;
+  unsigned char *pRaw;
+  unsigned char *pEnd;
+  const char *ppSrcs[2];
+  int lens[2];
+  char szPad[3];
+  int k;
+  int loop;
+
+  if (nSrcLen <= 0)
+  {
+       *dest = '\0';
+       *dest_len = 0;
+       return dest;
+  }
+
+  linePos = 0;
+  lens[0] = (nSrcLen / 3) * 3;
+  lens[1] = 3;
+  leftover = nSrcLen - lens[0];
+  ppSrcs[0] = src;
+  ppSrcs[1] = szPad;
+
+  szPad[0] = szPad[1] = szPad[2] = '\0';
+  switch (leftover)
+  {
+      case 0:
+      default:
+           loop = 1;
+           break;
+      case 1:
+           loop = 2;
+           szPad[0] = src[nSrcLen-1];
+           break;
+      case 2:
+           loop = 2;
+           szPad[0] = src[nSrcLen-2];
+           szPad[1] = src[nSrcLen-1];
+           break;
+  }
+
+  pDest = dest;
+  for (k=0; k<loop; k++)
+  {
+      pEnd = (unsigned char *)ppSrcs[k] + lens[k];
+      for (pRaw=(unsigned char *)ppSrcs[k]; pRaw<pEnd; pRaw+=3)
+      {
+         linePos += 4;
+         if (linePos > context->line_length)
+         {
+            if (context->line_length != 0)
+            {
+               memcpy(pDest, context->line_separator, context->line_sep_len);
+               pDest += context->line_sep_len;
+            }
+            linePos = 4;
+         }
+
+         combined = ((*pRaw) << 16) | ((*(pRaw+1)) << 8) | (*(pRaw+2));
+
+         c3 = combined & 0x3f;
+         combined >>= 6;
+         c2 = combined & 0x3f;
+         combined >>= 6;
+         c1 = combined & 0x3f;
+         combined >>= 6;
+         c0 = combined & 0x3f;
+
+         *pDest++ = context->valueToChar[c0];
+         *pDest++ = context->valueToChar[c1];
+         *pDest++ = context->valueToChar[c2];
+         *pDest++ = context->valueToChar[c3];
+      }
+  }
+
+  *pDest = '\0';
+  *dest_len = pDest - dest;
+
+  switch (leftover)
+  {
+     case 0:
+     default:
+        // nothing to do
+        break;
+     case 1:
+        if (bPad)
+        {
+           *(pDest-1) = context->pad_ch;
+           *(pDest-2) = context->pad_ch;
+        }
+        else
+        {
+           *(pDest-2) = '\0';
+           *dest_len -= 2;
+        }
+        break;
+     case 2:
+        if (bPad)
+        {
+           *(pDest-1) = context->pad_ch;
+        }
+        else
+        {
+           *(pDest-1) = '\0';
+           *dest_len -= 1;
+        }
+        break;
+  }
+
+  return dest;
+}
+
+char *base64_decode_auto(struct base64_context_st *context, const char *src, \
+		const int nSrcLen, char *dest, int *dest_len)
+{
+	int nRemain;
+	int nPadLen;
+	int nNewLen;
+	char tmpBuff[256];
+	char *pBuff;
+
+	nRemain = nSrcLen % 4;
+	if (nRemain == 0)
+	{
+		return base64_decode(context, src, nSrcLen, dest, dest_len);
+	}
+
+	nPadLen = 4 - nRemain;
+	nNewLen = nSrcLen + nPadLen;
+	if (nNewLen <= sizeof(tmpBuff))
+	{
+		pBuff = tmpBuff;
+	}
+	else
+	{
+		pBuff = (char *)malloc(nNewLen);
+		if (pBuff == NULL)
+		{
+			fprintf(stderr, "Can't malloc %d bytes\n", \
+				nSrcLen + nPadLen + 1);
+			*dest_len = 0;
+			*dest = '\0';
+			return dest;
+		}
+	}
+
+	memcpy(pBuff, src, nSrcLen);
+	memset(pBuff + nSrcLen, context->pad_ch, nPadLen);
+
+	base64_decode(context, pBuff, nNewLen, dest, dest_len);
+
+	if (pBuff != tmpBuff)
+	{
+		free(pBuff);
+	}
+
+	return dest;
+}
+
+char *base64_decode(struct base64_context_st *context, const char *src, \
+		const int nSrcLen, char *dest, int *dest_len)
+{
+      int cycle;
+      int combined;
+      int dummies;
+      int value;
+      unsigned char *pSrc;
+      unsigned char *pSrcEnd;
+      char *pDest;
+
+      cycle = 0;
+      combined = 0;
+      dummies = 0;
+      pDest = dest;
+      pSrcEnd = (unsigned char *)src + nSrcLen;
+      for (pSrc=(unsigned char *)src; pSrc<pSrcEnd; pSrc++)
+      {
+         value = context->charToValue[*pSrc];
+         switch (value)
+         {
+            case BASE64_IGNORE:
+               // e.g. \n, just ignore it.
+               break;
+            case BASE64_PAD:
+               value = 0;
+               dummies++;
+               // fallthrough
+            default:
+               /* regular value character */
+               switch (cycle)
+               {
+                  case 0:
+                     combined = value;
+                     cycle = 1;
+                     break;
+                  case 1:
+                     combined <<= 6;
+                     combined |= value;
+                     cycle = 2;
+                     break;
+                  case 2:
+                     combined <<= 6;
+                     combined |= value;
+                     cycle = 3;
+                     break;
+                  case 3:
+                     combined <<= 6;
+                     combined |= value;
+                     *pDest++ = (char)(combined >> 16);
+                     *pDest++ = (char)((combined & 0x0000FF00) >> 8);
+                     *pDest++ = (char)(combined & 0x000000FF);
+
+                     cycle = 0;
+                     break;
+               }
+               break;
+         }
+      }
+
+      if (cycle != 0)
+      {
+         *dest = '\0';
+         *dest_len = 0;
+         fprintf(stderr, "Input to decode not an even multiple of " \
+		"4 characters; pad with %c\n", context->pad_ch);
+         return dest;
+      }
+
+      *dest_len = (pDest - dest) - dummies;
+      *(dest + (*dest_len)) = '\0';
+
+      return dest;
+}
+

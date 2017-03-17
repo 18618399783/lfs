@@ -31,6 +31,7 @@
 #include "lfs_client_types.h"
 
 
+base64_context b64_ctx;
 
 void usage(char **argv);
 int downloadfile_req(const int sfd,const char *file_id,\
@@ -41,7 +42,7 @@ int downloadfile_req_do(const int sfd,const char *local_filename,\
 int downloadfile_to_file(const int sfd,const char *local_filename,\
 		const int64_t file_size);
 int recv_header(int sfd,int64_t *in_bytes);
-int file_metedata_unpack(const char *file_b64name,file_metedata *fmete);
+int file_metedata_unpack(char *file_b64name,const int file_b64name_len,file_metedata *fmete);
 
 int main(int argc,char **argv)
 {
@@ -68,6 +69,7 @@ int main(int argc,char **argv)
 		printf("invalid dataserver ip address and port:%s\n",pipport);
 		return -1;
 	}
+	base64_init(&b64_ctx,0);
 	snprintf(ip,sizeof(ip),"%.*s",(int)(pport - pipport),pipport);
 	port = atoi(pport + 1);
 #if 1
@@ -105,18 +107,10 @@ void usage(char **argv)
 int downloadfile_req(const int sfd,const char *file_id,const char *local_filename)
 {
 	int ret = 0;
-	char *b64decode;
-	int b64len;
+	char b64decode[256] = {0};
+	int fileid_len;
 
-	b64len = Base64decode_len((const char*)file_id);
-	b64decode = (char*)malloc(b64len * sizeof(char) + 1);
-	if(b64decode == NULL)
-	{
-		printf("Allocate memory to base64 decode buff failed.\n");
-		return -1;
-	}
-	memset(b64decode,0,b64len + 1);
-	Base64decode(b64decode,(const char*)file_id);
+	base64_decode(&b64_ctx,file_id,(const int)strlen(file_id),b64decode,&fileid_len);
 	printf("file id:%s\n",b64decode);
 
 	LFS_SPLIT_VOLUME_NAME_AND_BLOCK_INDEX_BY_FILE_ID(b64decode)
@@ -140,7 +134,7 @@ int downloadfile_req_do(const int sfd,const char *local_filename,\
 	//lfs_filedownload_resp *resp_body;
 
 	LFS_SPLIT_FILE_MAP_NAME(fid_map_name)
-	if(file_metedata_unpack((const char*)f_name_buff,&fmete) != 0)
+	if(file_metedata_unpack(f_name_buff,(const int)strlen(f_name_buff),&fmete) != 0)
 	{
 		printf("Unpack file mete data error.\n");
 		return -1;
@@ -264,17 +258,13 @@ int recv_header(int sfd,int64_t *in_bytes)
 	return 0;
 }
 
-int file_metedata_unpack(const char *file_b64name,file_metedata *fmete)
+int file_metedata_unpack(char *file_b64name,const int file_b64name_len,file_metedata *fmete)
 {
-	char file_name_b64buff[LFS_FILE_NAME_SIZE] = {0};
 	char file_binname[256] = {0};
-	//int file_binname_len;
+	int file_binname_len;
 	char *p;
 
-	snprintf(file_name_b64buff,sizeof(file_name_b64buff),"%s",\
-			file_b64name);
-	//file_binname_len = Base64decode_len((const char*)file_name_b64buff);
-	Base64decode(file_binname,file_name_b64buff);
+	base64_decode(&b64_ctx,file_binname,file_b64name_len,file_binname,&file_binname_len);
 	p = file_binname;
 	p = p + LFS_MACHINE_ID_BUFF_SIZE;
 	fmete->f_create_timestamp = (time_t)buff2long((const char*)p);

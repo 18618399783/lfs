@@ -38,24 +38,26 @@ int uploadfile_sendbigfile(const int sfd,const char *filename,\
 int uploadfile_by_filename(const int sfd,const char *filename);
 int uploadfile_do(const int sfd,const char *filename,int64_t file_size);
 int conn_server(const char *ip,const int port);
+void fork_test(int number,const char*ip,const int port,const char* filename);
 
 int main(int argc,char **argv)
 {
-	int sfd;
 	char *local_filename;
 	char *pipport;
 	char *pport;
 	char ip[IP_ADDRESS_SIZE];
 	int port;
-	int ret = 0,n = 0;
+	int tnumber = 0;
+	int ret = 0;
 
-	if(argc < 3)
+	if(argc < 4)
 	{
 		usage(argv);
 		return -1;
 	}
 	pipport = argv[1];
 	local_filename = argv[2];
+	tnumber = atoi(argv[3]);
 	pport = strchr(pipport,':');
 	if(pport == NULL)
 	{
@@ -65,35 +67,7 @@ int main(int argc,char **argv)
 	snprintf(ip,sizeof(ip),"%.*s",(int)(pport - pipport),pipport);
 	port = atoi(pport + 1);
 
-	for(n = 0;n < WORK_PROCESS_NUMBER; n++)
-	{
-		pid_t pid = fork();
-		if(pid < 0)
-		{
-			printf("fork error\n");
-			goto err;
-		}
-		else if(pid == 0)
-		{
-			printf("child pid:%d is uploading.\n",getpid());
-			sfd = conn_server((const char*)ip,(const int)port);
-			if(sfd <= 0)
-			{
-				printf("connect server failes.\n");
-				exit(0);
-			}
-			if((ret = uploadfile_by_filename(sfd,local_filename)) < 0)
-			{
-				printf("pid:%d upload file fails.\n",getpid());
-			}
-		}
-		else
-		{
-			printf("parent pid:%d.\n",getppid());
-		}
-	}
-
-err:
+	fork_test(tnumber,(const char*)ip,(const int)port,(const char*)local_filename);
 	return ret;
 }
 
@@ -201,6 +175,32 @@ int conn_server(const char *ip,const int port)
 	return sfd;
 }
 
+void fork_test(int number,const char*ip,const int port,const char* filename)
+{
+	pid_t pid;
+	pid = fork();
+	if(pid == 0)
+	{
+		printf("child pid:%d is uploading.\n",getpid());
+		int ret;
+		int sfd = conn_server(ip,port);
+		if(sfd <= 0)
+		{
+			printf("connect server failes.\n");
+			exit(0);
+		}
+		if((ret = uploadfile_by_filename(sfd,filename)) < 0)
+		{
+			printf("pid:%d upload file fails.\n",getpid());
+		}
+		return;
+	}
+	//wait(NULL);
+	if(number > 0)
+	{
+		fork_test(number - 1,ip,port,filename);
+	}
+}
 int recv_header(int sfd,int64_t *in_bytes)
 {
 	int ret = 0;

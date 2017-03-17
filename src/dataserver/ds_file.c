@@ -85,6 +85,7 @@ file_ctx* file_ctx_new(const int sfd,const int buffer_size,enum file_op_type opt
 		fctx->f_op_type = opt;
 		fctx->f_crc32 = 0;
 		fctx->alloc_count = 0;
+		fctx->f_b64_name_len = 0;
 		fctx->f_buff_size = buffer_size;
 		fctx->f_rwoffset = fctx->f_buff_offset = 0;
 		fctx->f_size = fctx->f_offset = fctx->f_total_offset = fctx->f_total_size = 0;
@@ -113,6 +114,7 @@ file_ctx* file_ctx_new(const int sfd,const int buffer_size,enum file_op_type opt
 	fctx->f_op_type = opt;
 	fctx->f_crc32 = 0;
 	fctx->alloc_count = 0;
+	fctx->f_b64_name_len = 0;
 	fctx->f_rwoffset = fctx->f_buff_offset = 0;
 	fctx->f_size = fctx->f_offset = fctx->f_total_offset = fctx->f_total_size = 0;
 	fctx->f_op_func = NULL;
@@ -144,6 +146,7 @@ void file_ctx_clean(file_ctx *fctx)
 	fctx->f_modify_timestamp = 0;
 	fctx->f_crc32 = 0;
 	fctx->alloc_count = 0;
+	fctx->f_b64_name_len = 0;
 	fctx->f_rwoffset = fctx->f_buff_offset = 0;
 	fctx->f_size = fctx->f_offset = fctx->f_total_offset = fctx->f_total_size = 0;
 	fctx->f_op_func = NULL;
@@ -218,17 +221,15 @@ int file_metedata_pack(file_ctx *fctx)
 	return LFS_OK;
 }
 
-int file_metedata_unpack(const char *file_b64name,file_metedata *fmete)
+int file_metedata_unpack(char *file_b64name,const int file_b64name_len,file_metedata *fmete)
 {
 	assert(fmete != NULL);
-	char file_name_b64buff[LFS_FILE_NAME_SIZE] = {0};
-	char file_binname[256] = {0};
+	char fileid_buff[LFS_FILE_ID_SIZE] = {0};
 	char *p;
+	int fileid_len;
 
-	snprintf(file_name_b64buff,sizeof(file_name_b64buff),"%s",\
-			file_b64name);
-	Base64decode(file_binname,file_b64name);
-	p = file_binname;
+	base64_decode(&ctxs.b64_ctx,file_b64name,file_b64name_len,fileid_buff,&fileid_len);
+	p = fileid_buff;
 	p += LFS_MACHINE_ID_BUFF_SIZE;
 	fmete->f_create_timestamp = (time_t)buff2long((const char*)p);
 	p += LFS_FILE_METEDATA_TIME_BUFF_SIZE;
@@ -264,31 +265,31 @@ static int __fileidname_pack(file_ctx *fctx)
 {
 	char f_machineid_buff[LFS_MACHINE_ID_BUFF_SIZE] = {0};
 	char f_name_buff[LFS_FILE_METEDATA_NAME_BUFF_SIZE] = {0};
-	char *p,*pm;
+	char *pfm,*pfn;
 	uint32_t tid;
 
 	tid = (int32_t)pthread_self();
 	memset(fctx->f_b64_name,0,sizeof(fctx->f_b64_name));
 
-	pm = f_machineid_buff;	
-	int2buff((const int)ctxs.sid,pm);
-	int2buff((const int)tid,pm + 4);
+	pfm = f_machineid_buff;	
+	int2buff((const int)ctxs.sid,pfm);
+	int2buff((const int)tid,pfm + 4);
 
-	p = f_name_buff;
-	memcpy(p,pm,LFS_MACHINE_ID_BUFF_SIZE);
-	p += LFS_MACHINE_ID_BUFF_SIZE;
-	long2buff((long)fctx->f_create_timestamp,p);	
-	p += LFS_FILE_METEDATA_TIME_BUFF_SIZE;
-	long2buff((long)fctx->f_modify_timestamp,p);	
-	p += LFS_FILE_METEDATA_TIME_BUFF_SIZE;
-	long2buff(fctx->f_offset,p);
-	p += LFS_FILE_METEDATA_OFFSET_BUFF_SIZE;
-	long2buff(fctx->f_total_size,p);
-	p += LFS_FILE_METEDATA_SIZE_BUFF_SIZE;
-	int2buff(fctx->f_crc32,p);
-	p += LFS_FILE_METEDATA_CRC32_BUFF_SIZE;
+	pfn = f_name_buff;
+	memcpy(pfn,f_machineid_buff,LFS_MACHINE_ID_BUFF_SIZE);
+	pfn += LFS_MACHINE_ID_BUFF_SIZE;
+	long2buff((long)fctx->f_create_timestamp,pfn);	
+	pfn += LFS_FILE_METEDATA_TIME_BUFF_SIZE;
+	long2buff((long)fctx->f_modify_timestamp,pfn);	
+	pfn += LFS_FILE_METEDATA_TIME_BUFF_SIZE;
+	long2buff(fctx->f_offset,pfn);
+	pfn += LFS_FILE_METEDATA_OFFSET_BUFF_SIZE;
+	long2buff(fctx->f_total_size,pfn);
+	pfn += LFS_FILE_METEDATA_SIZE_BUFF_SIZE;
+	int2buff(fctx->f_crc32,pfn);
+	pfn += LFS_FILE_METEDATA_CRC32_BUFF_SIZE;
 
-	Base64encode(fctx->f_b64_name,(const char*)f_name_buff,p - f_name_buff);
+	base64_encode(&ctxs.b64_ctx,(const char*)f_name_buff,pfn - f_name_buff,fctx->f_b64_name,&fctx->f_b64_name_len);
 	return LFS_OK;
 }
 

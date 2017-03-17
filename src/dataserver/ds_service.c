@@ -124,6 +124,7 @@ void file_upload_done_callback(conn *c,const int err_no)
 			}
 			lfs_fileupload_resp *resp;
 			protocol_header *resp_header;
+			int fileid_b64_len;
 
 			resp_header = (protocol_header*)c->wbuff;
 			resp_header->header_s.body_len = (uint64_t)sizeof(lfs_fileupload_resp);
@@ -133,8 +134,10 @@ void file_upload_done_callback(conn *c,const int err_no)
 
 			resp = (lfs_fileupload_resp*)(c->wbuff + \
 					sizeof(protocol_header));
-			Base64encode(resp->file_b64_id,\
-					(const char*)c->fctx->f_id,strlen(c->fctx->f_id));
+			base64_encode(&ctxs.b64_ctx,c->fctx->f_id,\
+					strlen(c->fctx->f_id),resp->file_b64_id,\
+					&fileid_b64_len);
+			int2buff(fileid_b64_len,resp->file_b64_id_len);
 			c->wbytes += sizeof(lfs_fileupload_resp);
 			dio_notify_nio(c,conn_write,EV_WRITE|EV_PERSIST);
 			return;
