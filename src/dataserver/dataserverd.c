@@ -91,7 +91,7 @@ static void usage(void)
 
 static void usage_license(void)
 {
-	printf("Copyright (c) 2016, lanpo Cloud, Inc. <http://www.lanpocloud.com/>\n"
+	printf("Copyright (c) 2016, linliwen\n"
 			"All rights reserved.\n"
 			"\n"
 			"Redistribution and use in source and binary forms, with or without\n"
@@ -106,7 +106,7 @@ static void usage_license(void)
 			"in the documentation and/or other materials provided with the\n"
 			"distribution.\n"
 			"\n"
-			"    * Neither the name of the lanpo cloud Interactive nor the names of its\n"
+			"    * Neither the name of the linliwen Interactive nor the names of its\n"
 			"contributors may be used to endorse or promote products derived from\n"
 			"this software without specific prior written permission.\n"
 			"\n"
