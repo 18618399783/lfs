@@ -525,7 +525,10 @@ static int __block_map_path_polling(file_ctx *fctx)
 		}
 		ctxs.block_opt_count += 1;
 	}
-	mounts.blocks[fctx->f_mnt_block_index]->curr_path_map_file_count = curr_file_count; 
+	else
+	{
+		mounts.blocks[fctx->f_mnt_block_index]->curr_path_map_file_count = curr_file_count; 
+	}
 	MOUNT_BLOCK_UNLOCK();
 	fctx->f_mp_pre = mounts.blocks[fctx->f_mnt_block_index]->pre_path_map;
 	fctx->f_mp_suf = mounts.blocks[fctx->f_mnt_block_index]->suf_path_map;

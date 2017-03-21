@@ -40,6 +40,7 @@ int uploadfile_do(const int sfd,const char *filename,int64_t file_size);
 int conn_server(const char *ip,const int port);
 void fork_test(int number,const char*ip,const int port,const char* filename);
 
+
 int main(int argc,char **argv)
 {
 	char *local_filename;
@@ -49,6 +50,7 @@ int main(int argc,char **argv)
 	int port;
 	int tnumber = 0;
 	int ret = 0;
+	time_t timep; 
 
 	if(argc < 4)
 	{
@@ -67,6 +69,8 @@ int main(int argc,char **argv)
 	snprintf(ip,sizeof(ip),"%.*s",(int)(pport - pipport),pipport);
 	port = atoi(pport + 1);
 
+	time (&timep); 
+	printf("%s",asctime(gmtime(&timep)));
 	fork_test(tnumber,(const char*)ip,(const int)port,(const char*)local_filename);
 	return ret;
 }
@@ -201,6 +205,7 @@ void fork_test(int number,const char*ip,const int port,const char* filename)
 		fork_test(number - 1,ip,port,filename);
 	}
 }
+
 int recv_header(int sfd,int64_t *in_bytes)
 {
 	int ret = 0;
